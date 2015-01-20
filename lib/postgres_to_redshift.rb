@@ -1,6 +1,9 @@
 require "postgres_to_redshift/version"
+require 'pg'
+require 'uri'
+require 'aws-sdk'
 
-module PostgresToRedshift
+class PostgresToRedshift
   attr_reader :source_connection, :target_connection, :s3
 
   def self.update_tables
@@ -46,11 +49,11 @@ module PostgresToRedshift
   end
 
   def s3
-    @s3 ||= AWS::S3.new(access_key_id: '', secret_access_key: '')
+    @s3 ||= AWS::S3.new(access_key_id: ENV['S3_DATABASE_EXPORT_ID'], secret_access_key: ENV['S3_DATABASE_EXPORT_KEY'])
   end
 
   def bucket
-    @bucket ||= s3.buckets['kitchensurfing-databases']
+    @bucket ||= s3.buckets[ENV['S3_DATABASE_EXPORT_BUCKET']]
   end
 
   def create_new_tables
@@ -93,7 +96,7 @@ module PostgresToRedshift
 
     target_connection.exec("CREATE TABLE public.#{target_table} (#{table_columns(target_table)})")
 
-    target_connection.exec("COPY public.#{target_table} FROM '' CREDENTIALS 'aws_access_key_id=;aws_secret_access_key=;")
+    target_connection.exec("COPY public.#{target_table} FROM 's3://#{ENV['S3_DATABASE_EXPORT_BUCKET']}/export/#{target_table}.psv' CREDENTIALS 'aws_access_key_id=#{ENV['S3_DATABASE_EXPORT_ID']};aws_secret_access_key=#{ENV['S3_DATABASE_EXPORT_KEY']}' TRUNCATECOLUMNS ESCAPE DELIMITER as '|';")
 
     target_connection.exec("COMMIT;")
   end

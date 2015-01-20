@@ -1,6 +1,6 @@
 # PostgresToRedshift
 
-TODO: Write a gem description
+This gem copies data from postgres to redshift. It's especially useful to copy data from postgres to redshift in heroku.
 
 ## Installation
 
@@ -20,11 +20,18 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+```bash
+export REDSHIFT_URI='postgres://username:password@host:port/database-name'
+export S3_DATABASE_EXPORT_ID='yourid'
+export S3_DATABASE_EXPORT_KEY='yourkey'
+export S3_DATABASE_EXPORT_BUCKET='some-bucket-to-use'
+
+postgres_to_redshift $MY_SOURCE_DATABASE
+```
 
 ## Contributing
 
-1. Fork it ( https://github.com/[my-github-username]/postgres_to_redshift/fork )
+1. Fork it ( https://github.com/kitchensurfing/postgres_to_redshift/fork )
 2. Create your feature branch (`git checkout -b my-new-feature`)
 3. Commit your changes (`git commit -am 'Add some feature'`)
 4. Push to the branch (`git push origin my-new-feature`)
