@@ -7,7 +7,7 @@ class PostgresToRedshift
   attr_reader :source_connection, :target_connection, :s3
 
   def self.update_tables
-    update_tables = PostgresToRedshift.new(source_uri: ARGV[0])
+    update_tables = PostgresToRedshift.new(source_uri: ARGV[0], target_uri: ENV['REDSHIFT_URI'])
     update_tables.create_new_tables
 
     # FIXME: BIG WARNING HERE: this order is important. We want the views to overwrite the tables. We should make it so the order doesn't matter later.
@@ -16,9 +16,9 @@ class PostgresToRedshift
     update_tables.import_tables
   end
 
-  def initialize(source_uri:)
+  def initialize(source_uri: , target_uri:)
     source_uri = URI.parse(source_uri)
-    target_uri = URI.parse(ENV['REDSHIFT_URI'])
+    target_uri = URI.parse(target_uri)
     @source_connection = PG::Connection.new(host: source_uri.host, port: source_uri.port, user: source_uri.user, password: source_uri.password, dbname: source_uri.path[1..-1])
     @source_connection.exec("SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY;")
     @target_connection = PG::Connection.new(host: target_uri.host, port: target_uri.port, user: target_uri.user, password: target_uri.password, dbname: target_uri.path[1..-1])
