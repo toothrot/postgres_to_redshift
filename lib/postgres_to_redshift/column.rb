@@ -64,9 +64,9 @@ class PostgresToRedshift::Column
 
   def name_for_copy
     if needs_type_cast?
-      "CAST(#{name} AS #{data_type_for_copy}) AS #{name}"
+      %Q[CAST("#{name}" AS #{data_type_for_copy}) AS #{name}]
     else
-      name
+      %Q["#{name}"]
     end
   end
 

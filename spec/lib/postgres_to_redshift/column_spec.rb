@@ -42,7 +42,7 @@ RSpec.describe PostgresToRedshift::Column do
       }
 
       column = PostgresToRedshift::Column.new attributes: attributes
-      expect(column.name_for_copy).to eq("CAST(description AS CHARACTER VARYING(65535)) AS description")
+      expect(column.name_for_copy).to eq('CAST("description" AS CHARACTER VARYING(65535)) AS description')
     end
 
     it 'does not cast fields that do not need casting' do
@@ -60,7 +60,7 @@ RSpec.describe PostgresToRedshift::Column do
       }
 
       column = PostgresToRedshift::Column.new attributes: attributes
-      expect(column.name_for_copy).to eq('description')
+      expect(column.name_for_copy).to eq('"description"')
     end
   end
 
