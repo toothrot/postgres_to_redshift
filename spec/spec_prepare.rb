@@ -1,20 +1,14 @@
-module PostgresToRedshift::Tests
-  def self.test_uri
-    URI.parse(ENV['POSTGRES_TO_REDSHIFT_TEST_URI'])
+module PostgresToRedshift::Test
+  def self.source_uri
+    PostgresToRedshift.source_uri
   end
 
-  def self.connection
-    @connection ||= PG::Connection.new(
-      host: test_uri.host,
-      port: test_uri.port,
-      user: test_uri.user,
-      password: test_uri.password,
-      dbname: test_uri.path[1..-1])
+  def self.test_connection
+    @test_connection ||= PG::Connection.new(host: source_uri.host, port: source_uri.port, user: source_uri.user || ENV['USER'], password: source_uri.password, dbname: source_uri.path[1..-1])
   end
 end
 
 RSpec.configure do |config|
   config.before :suite do
-    PostgresToRedshift::Tests.connection
   end
 end

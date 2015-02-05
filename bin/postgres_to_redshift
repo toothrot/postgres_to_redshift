@@ -3,4 +3,3 @@
 require 'postgres_to_redshift'
 
 PostgresToRedshift.update_tables
-

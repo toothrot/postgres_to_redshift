@@ -2,26 +2,57 @@ require "postgres_to_redshift/version"
 require 'pg'
 require 'uri'
 require 'aws-sdk'
+require "postgres_to_redshift/table"
+require "postgres_to_redshift/column"
 
 class PostgresToRedshift
+  class << self
+    attr_accessor :source_uri, :target_uri
+  end
+
   attr_reader :source_connection, :target_connection, :s3
 
   def self.update_tables
-    update_tables = PostgresToRedshift.new(source_uri: ARGV[0], target_uri: ENV['REDSHIFT_URI'])
+    update_tables = PostgresToRedshift.new
     update_tables.create_new_tables
 
-    # FIXME: BIG WARNING HERE: this order is important. We want the views to overwrite the tables. We should make it so the order doesn't matter later.
+    # FIXME: BIG WARNING HERE: the order of tables and views is important. We want the views to overwrite the tables. We should make it so the order doesn't matter later.
     update_tables.copy_tables
     update_tables.copy_views
     update_tables.import_tables
   end
 
-  def initialize(source_uri: , target_uri:)
-    source_uri = URI.parse(source_uri)
-    target_uri = URI.parse(target_uri)
-    @source_connection = PG::Connection.new(host: source_uri.host, port: source_uri.port, user: source_uri.user, password: source_uri.password, dbname: source_uri.path[1..-1])
-    @source_connection.exec("SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY;")
-    @target_connection = PG::Connection.new(host: target_uri.host, port: target_uri.port, user: target_uri.user, password: target_uri.password, dbname: target_uri.path[1..-1])
+  def self.source_uri
+    @source_uri ||= URI.parse(ENV['POSTGRES_TO_REDSHIFT_SOURCE_URI'])
+  end
+
+  def self.target_uri
+    @target_uri ||= URI.parse(ENV['POSTGRES_TO_REDSHIFT_TARGET_URI'])
+  end
+
+  def self.source_connection
+    unless instance_variable_defined?(:"@source_connection")
+      @source_connection = PG::Connection.new(host: source_uri.host, port: source_uri.port, user: source_uri.user || ENV['USER'], password: source_uri.password, dbname: source_uri.path[1..-1])
+      @source_connection.exec("SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY;")
+    end
+
+    @source_connection
+  end
+
+  def self.target_connection
+    unless instance_variable_defined?(:"@target_connection")
+      @target_connection = PG::Connection.new(host: target_uri.host, port: target_uri.port, user: target_uri.user || ENV['USER'], password: target_uri.password, dbname: target_uri.path[1..-1])
+    end
+
+    @target_connection
+  end
+
+  def source_connection
+    self.class.source_connection
+  end
+
+  def target_connection
+    self.class.source_connection
   end
 
   def views
@@ -29,7 +60,7 @@ class PostgresToRedshift
   end
 
   def tables
-    source_connection.exec("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'").map { |row| row["table_name"] }
+    source_connection.exec("SELECT * FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'").map { |row| Table.new(attributes: row) }
   end
 
   def table_columns(table_name)
@@ -58,7 +89,7 @@ class PostgresToRedshift
 
   def create_new_tables
     tables.each do |table|
-      target_connection.exec("CREATE TABLE IF NOT EXISTS public.#{table} (#{table_columns(table)})")
+      target_connection.exec("CREATE TABLE IF NOT EXISTS public.#{table.name} (#{table_columns(table.name)})")
     end
   end
 
@@ -103,7 +134,7 @@ class PostgresToRedshift
 
   def copy_tables
     tables.each do |table|
-      copy_table(table, table)
+      copy_table(table.name, table.name)
     end
   end
 
@@ -117,7 +148,7 @@ class PostgresToRedshift
   # FIXME: This relies on views being uploaded after tables.
   def import_tables
     tables.each do |table|
-      import_table(table)
+      import_table(table.name)
     end
   end
 end

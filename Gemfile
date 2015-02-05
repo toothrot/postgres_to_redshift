@@ -6,4 +6,5 @@ gemspec
 group :test do
   gem 'rake'
   gem 'rspec'
+  gem 'database_cleaner'
 end
