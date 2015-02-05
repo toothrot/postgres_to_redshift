@@ -16,5 +16,14 @@ RSpec.describe PostgresToRedshift do
       expect(PostgresToRedshift.new.tables.size).to eq(1)
       expect(PostgresToRedshift.new.tables.first.name).to eq("films")
     end
+
+    it 'lists column definitions' do
+      table = PostgresToRedshift.new.tables.first
+      film_columns = PostgresToRedshift.new.column_definitions(table)
+
+      expect(film_columns.to_a.size).to eq(2)
+      expect(film_columns.first["column_name"]).to eq("id")
+      expect(table.columns.first.name).to eq("id")
+    end
   end
 end

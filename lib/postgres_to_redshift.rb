@@ -60,22 +60,21 @@ class PostgresToRedshift
   end
 
   def tables
-    source_connection.exec("SELECT * FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'").map { |row| Table.new(attributes: row) }
+    source_connection.exec("SELECT * FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'").map do |table_attributes|
+      table = Table.new(attributes: table_attributes)
+      table.columns = column_definitions(table)
+      table
+    end
+  end
+
+  def column_definitions(table)
+    source_connection.exec("SELECT * FROM information_schema.columns WHERE table_schema='public' AND table_name='#{table.name}'")
   end
 
   def table_columns(table_name)
-    source_connection.exec("SELECT column_name, data_type, character_maximum_length FROM information_schema.columns WHERE table_schema='public' AND table_name='#{table_name}'").map do |row| 
-      data_type = row["data_type"]
-      data_type.gsub!(/text/, 'character varying(max)')
-      data_type.gsub!(/json/, 'character varying(max)')
-      data_type.gsub!(/bytea/, 'character varying(max)')
-      data_type.gsub!(/money/, 'character varying(max)')
-
-      if row["character_maximum_length"].to_s.length > 0
-        %Q|"#{row["column_name"]}" #{data_type}(#{row["character_maximum_length"]})|
-      else
-        %Q|"#{row["column_name"]}" #{data_type}|
-      end
+    table = tables.detect {|table| table.name == table_name }
+    table.columns.map do |column|
+      %Q[#{column.name} #{column.data_type_for_copy}]
     end.join(", ")
   end
 
