@@ -59,10 +59,11 @@ class PostgresToRedshift
 
   def tables
     source_connection.exec("SELECT * FROM information_schema.tables WHERE table_schema = 'public' AND table_type in ('BASE TABLE', 'VIEW')").map do |table_attributes|
+      next if table.name =~ /^pg_/
       table = Table.new(attributes: table_attributes)
       table.columns = column_definitions(table)
       table
-    end
+    end.compact
   end
 
   def column_definitions(table)
