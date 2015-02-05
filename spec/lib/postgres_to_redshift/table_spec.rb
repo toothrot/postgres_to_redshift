@@ -8,16 +8,23 @@ RSpec.describe PostgresToRedshift::Table do
         "table_schema" => "public",
         "table_name" => "films",
         "table_type" => "BASE TABLE",
-        "self_referencing_column_name" => nil,
-        "reference_generation" => nil,
-        "user_defined_type_catalog" => nil,
-        "user_defined_type_schema" => nil,
-        "user_defined_type_name" => nil,
-        "is_insertable_into" => "YES",
-        "is_typed" => "NO"
       }
+      columns = [
+        {
+          "table_catalog"            => "postgres_to_redshift",
+          "table_schema"             => "public",
+          "table_name"               => "films",
+          "column_name"              => "description",
+          "ordinal_position"         => "2",
+          "column_default"           => nil,
+          "is_nullable"              => "YES",
+          "data_type"                => "character varying",
+          "character_maximum_length" => "255",
+          "character_octet_length"   => "1020"
+        }
+      ]
 
-      @table = PostgresToRedshift::Table.new(attributes: attributes)
+      @table = PostgresToRedshift::Table.new(attributes: attributes, columns: columns)
     end
 
     describe '#name' do
@@ -26,5 +33,11 @@ RSpec.describe PostgresToRedshift::Table do
       end
     end
 
+    describe '#columns' do
+      it 'returns a list of columns' do
+        expect(@table.columns.size).to eq(1)
+        expect(@table.columns.first.name).to eq("description")
+      end
+    end
   end
 end

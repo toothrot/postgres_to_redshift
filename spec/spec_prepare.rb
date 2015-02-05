@@ -10,5 +10,6 @@ end
 
 RSpec.configure do |config|
   config.before :suite do
+    PostgresToRedshift::Test.test_connection
   end
 end
