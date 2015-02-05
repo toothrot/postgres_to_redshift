@@ -1,6 +1,7 @@
 language: ruby
 rvm:
   - 2.2.0
+  - 2.1.0
 before_script:
   - psql -c 'create database travis_ci_test;' -U postgres
   - export POSTGRES_TO_REDSHIFT_TEST_URI=postgres://postgres@localhost/travis_ci_test
