@@ -52,7 +52,7 @@ class PostgresToRedshift
   end
 
   def target_connection
-    self.class.source_connection
+    self.class.target_connection
   end
 
   def views
@@ -78,6 +78,13 @@ class PostgresToRedshift
     end.join(", ")
   end
 
+  def table_columns_for_copy(table_name)
+    table = tables.detect {|table| table.name == table_name }
+    table.columns.map do |column|
+      %Q[#{column.name_for_copy}]
+    end.join(", ")
+  end
+
   def s3
     @s3 ||= AWS::S3.new(access_key_id: ENV['S3_DATABASE_EXPORT_ID'], secret_access_key: ENV['S3_DATABASE_EXPORT_KEY'])
   end
@@ -95,12 +102,7 @@ class PostgresToRedshift
   def copy_table(source_table, target_table, is_view = false)
     buffer = ""
     puts "Downloading #{source_table}"
-    copy_command = 
-      if is_view
-        "COPY (SELECT * FROM #{source_table}) TO STDOUT WITH DELIMITER '|'"
-      else
-        "COPY #{source_table} TO STDOUT WITH DELIMITER '|'"
-      end
+    copy_command = "COPY (SELECT #{table_columns_for_copy(source_table)} FROM #{source_table}) TO STDOUT WITH DELIMITER '|'"
 
     source_connection.copy_data(copy_command) do
       while row = source_connection.get_copy_data
