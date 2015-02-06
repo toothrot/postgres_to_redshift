@@ -31,7 +31,7 @@ export S3_DATABASE_EXPORT_ID='yourid'
 export S3_DATABASE_EXPORT_KEY='yourkey'
 export S3_DATABASE_EXPORT_BUCKET='some-bucket-to-use'
 
-postgres_to_redshift $MY_SOURCE_DATABASE
+postgres_to_redshift
 ```
 
 ## Contributing
