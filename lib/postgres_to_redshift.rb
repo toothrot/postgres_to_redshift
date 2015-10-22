@@ -1,7 +1,7 @@
 require "postgres_to_redshift/version"
 require 'pg'
 require 'uri'
-require 'aws-sdk'
+require 'aws-sdk-v1'
 require 'zlib'
 require 'stringio'
 require "postgres_to_redshift/table"
