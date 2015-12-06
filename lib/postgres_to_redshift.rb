@@ -1,11 +1,13 @@
 require "postgres_to_redshift/version"
 require 'pg'
 require 'uri'
-require 'aws-sdk-v1'
+require 'aws-sdk'
+Aws.use_bundled_cert!
 require 'zlib'
 require 'stringio'
 require "postgres_to_redshift/table"
 require "postgres_to_redshift/column"
+
 
 class PostgresToRedshift
   class << self
@@ -18,11 +20,15 @@ class PostgresToRedshift
     update_tables = PostgresToRedshift.new
 
     update_tables.tables.each do |table|
-      target_connection.exec("CREATE TABLE IF NOT EXISTS public.#{table.target_table_name} (#{table.columns_for_create})")
+      begin
+        target_connection.exec("CREATE TABLE IF NOT EXISTS public.#{table.target_table_name} (#{table.columns_for_create})")
 
-      update_tables.copy_table(table)
+        update_tables.copy_table(table)
 
-      update_tables.import_table(table)
+        update_tables.import_table(table)
+      rescue
+          puts "Error creating new table in Redshift..."
+      end
     end
   end
 
@@ -73,11 +79,14 @@ class PostgresToRedshift
   end
 
   def s3
-    @s3 ||= AWS::S3.new(access_key_id: ENV['S3_DATABASE_EXPORT_ID'], secret_access_key: ENV['S3_DATABASE_EXPORT_KEY'])
+    @s3 ||= Aws::S3::Resource.new(
+      credentials: Aws::Credentials.new(ENV['S3_DATABASE_EXPORT_ID'], ENV['S3_DATABASE_EXPORT_KEY']),
+      region: ENV['S3_DATABASE_EXPORT_REGION'],
+    )
   end
 
   def bucket
-    @bucket ||= s3.buckets[ENV['S3_DATABASE_EXPORT_BUCKET']]
+    @bucket ||= s3.bucket(ENV['S3_DATABASE_EXPORT_BUCKET'])
   end
 
   def copy_table(table)
@@ -98,9 +107,11 @@ class PostgresToRedshift
   end
 
   def upload_table(table, buffer)
+    puts "Deleting #{table.target_table_name}"
+    bucket.object("export/#{table.target_table_name}.psv.gz").delete()
+
     puts "Uploading #{table.target_table_name}"
-    bucket.objects["export/#{table.target_table_name}.psv.gz"].delete
-    bucket.objects["export/#{table.target_table_name}.psv.gz"].write(buffer, acl: :authenticated_read)
+    bucket.object("export/#{table.target_table_name}.psv.gz").put(body: buffer)
   end
 
   def import_table(table)
