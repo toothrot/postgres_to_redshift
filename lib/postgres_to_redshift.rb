@@ -3,7 +3,7 @@ require 'pg'
 require 'uri'
 require 'aws-sdk-v1'
 require 'zlib'
-require 'stringio'
+require 'tempfile'
 require "postgres_to_redshift/table"
 require "postgres_to_redshift/column"
 
@@ -81,20 +81,24 @@ class PostgresToRedshift
   end
 
   def copy_table(table)
-    buffer = StringIO.new
-    zip = Zlib::GzipWriter.new(buffer)
+    tmpfile = Tempfile.new("psql2rs")
+    zip = Zlib::GzipWriter.new(tmpfile)
+    begin
+      puts "Downloading #{table}"
+      copy_command = "COPY (SELECT #{table.columns_for_copy} FROM #{table.name}) TO STDOUT WITH DELIMITER '|'"
 
-    puts "Downloading #{table}"
-    copy_command = "COPY (SELECT #{table.columns_for_copy} FROM #{table.name}) TO STDOUT WITH DELIMITER '|'"
-
-    source_connection.copy_data(copy_command) do
-      while row = source_connection.get_copy_data
-        zip.write(row)
+      source_connection.copy_data(copy_command) do
+        while row = source_connection.get_copy_data
+          zip.write(row)
+        end
       end
+      zip.finish
+      tmpfile.rewind
+      upload_table(table, tmpfile)
+    ensure
+      zip.close
+      tmpfile.unlink
     end
-    zip.finish
-    buffer.rewind
-    upload_table(table, buffer)
   end
 
   def upload_table(table, buffer)
