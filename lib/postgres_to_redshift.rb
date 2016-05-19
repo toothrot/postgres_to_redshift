@@ -96,7 +96,7 @@ class PostgresToRedshift
       tmpfile.rewind
       upload_table(table, tmpfile)
     ensure
-      zip.close
+      zip.close unless zip.closed?
       tmpfile.unlink
     end
   end
