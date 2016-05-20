@@ -97,7 +97,7 @@ class PostgresToRedshift
       source_connection.copy_data(copy_command) do
         while row = source_connection.get_copy_data
           zip.write(row)
-          if (zip.pos() > chunksize)
+          if (zip.pos > chunksize)
             zip.finish
             tmpfile.rewind
             upload_table(table, tmpfile, chunk)
