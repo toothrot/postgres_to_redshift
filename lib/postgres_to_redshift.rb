@@ -14,6 +14,10 @@ class PostgresToRedshift
 
   attr_reader :source_connection, :target_connection, :s3
 
+  KILOBYTE = 1024
+  MEGABYTE = KILOBYTE * 1024
+  GIGABYTE = MEGABYTE * 1024
+
   def self.update_tables
     update_tables = PostgresToRedshift.new
 
@@ -83,7 +87,7 @@ class PostgresToRedshift
   def copy_table(table)
     tmpfile = Tempfile.new("psql2rs")
     zip = Zlib::GzipWriter.new(tmpfile)
-    chunksize = 5 * 1024 * 1024 * 1024
+    chunksize = 5 * GIGABYTE # uncompressed
     chunk = 1
     bucket.objects.with_prefix("export/#{table.target_table_name}.psv.gz").delete_all
     begin
