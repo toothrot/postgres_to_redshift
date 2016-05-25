@@ -1,3 +1,4 @@
+[![Stories in Ready](https://badge.waffle.io/kitchensurfing/postgres_to_redshift.png?label=ready&title=Ready)](https://waffle.io/kitchensurfing/postgres_to_redshift)
 # PostgresToRedshift
 
 This gem copies data from postgres to redshift. It's especially useful to copy data from postgres to redshift in heroku.
