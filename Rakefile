@@ -1,10 +1,17 @@
-require "bundler/gem_tasks"
+require 'bundler/gem_tasks'
 
 begin
   require 'rspec/core/rake_task'
-  RSpec::Core::RakeTask.new(:spec)
+  namespace :spec do
+    RSpec::Core::RakeTask.new(:units) do |t|
+      t.rspec_opts = '--tag ~type:feature'
+    end
+    RSpec::Core::RakeTask.new(:features) do |t|
+      t.rspec_opts = '--tag type:feature'
+    end
+  end
 rescue LoadError
 end
 
 task(:default).clear
-task :default => :spec
+task :default => 'spec:units'
