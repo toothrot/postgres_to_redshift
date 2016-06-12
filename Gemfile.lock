@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    postgres_to_redshift (0.1.1)
+    postgres_to_redshift (0.1.2)
       aws-sdk-v1 (~> 1.54)
       pg (~> 0.17.0)
 
@@ -40,3 +40,6 @@ DEPENDENCIES
   postgres_to_redshift!
   rake
   rspec
+
+BUNDLED WITH
+   1.10.5
