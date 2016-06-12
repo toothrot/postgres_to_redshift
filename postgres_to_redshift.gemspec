@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
   spec.email         = ["arakoczy@gmail.com"]
   spec.summary       = %q{Load postgres databases into Amazon Redshift}
   spec.description   = %q{Load postgres databases into Amazon Redshift. It's designed to work on Heroku Scheduler, or other *nix/BSD hosts.}
-  spec.homepage      = "https://github.com/kitchensurfing/postgres_to_redshift"
+  spec.homepage      = "https://github.com/toothrot/postgres_to_redshift"
   spec.license       = "MIT"
 
   spec.files         = `git ls-files -z`.split("\x0")
