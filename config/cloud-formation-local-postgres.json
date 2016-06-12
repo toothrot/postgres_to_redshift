@@ -1,0 +1,39 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Metadata": {
+  },
+  "Resources": {
+    "redshiftSecurityGroup" : {
+      "Type": "AWS::Redshift::ClusterSecurityGroup",
+      "Properties": {
+        "Description" : "Security group to determine where connections to the Amazon Redshift cluster can come from"
+      }
+    },
+    "redshiftSecurityGroupIngress" : {
+      "Type": "AWS::Redshift::ClusterSecurityGroupIngress",
+      "Properties": {
+        "ClusterSecurityGroupName" : {"Ref":"redshiftSecurityGroup"},
+        "CIDRIP" : "0.0.0.0/0"
+      }
+    },
+    "Redshift": {
+      "Type": "AWS::Redshift::Cluster",
+      "Properties": {
+        "ClusterType": "single-node",
+        "ClusterSecurityGroups": [{"Ref":"redshiftSecurityGroup"}],
+        "DBName": "test",
+        "MasterUsername": "test",
+        "MasterUserPassword": "Testtesttest1",
+        "NodeType": "dc1.large"
+      },
+      "Metadata": {
+      }
+    },
+    "s3Bucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {},
+      "Metadata": {
+      }
+    }
+  }
+}

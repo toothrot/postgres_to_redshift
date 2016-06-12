@@ -1,0 +1,55 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Metadata": {
+  },
+  "Resources": {
+    "postgresSecurityGroup" : {
+       "Type" : "AWS::RDS::DBSecurityGroup",
+       "Properties" :
+       {
+          "DBSecurityGroupIngress" : [ {"CIDRIP": "0.0.0.0/0"} ],
+          "GroupDescription" : "Sup"
+       }
+    },
+    "postgres": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "AllowMajorVersionUpgrade": true,
+        "DBInstanceClass": "db.m3.medium",
+        "DBSecurityGroups": [{"Ref" :"postgresSecurityGroup"}],
+        "BackupRetentionPeriod": "0",
+        "DBName": "test",
+        "AllocatedStorage": "5",
+        "Engine": "postgres",
+        "EngineVersion": "9.5.2",
+        "MasterUsername": "test",
+        "MasterUserPassword": "testtesttest",
+        "StorageType": "standard",
+        "PubliclyAccessible": true
+      },
+      "Metadata": {
+      },
+      "DependsOn": [
+        "postgresSecurityGroup"
+      ]
+    },
+    "Redshift": {
+      "Type": "AWS::Redshift::Cluster",
+      "Properties": {
+        "ClusterType": "single-node",
+        "DBName": "test",
+        "MasterUsername": "test",
+        "MasterUserPassword": "Testtesttest1",
+        "NodeType": "dc1.large"
+      },
+      "Metadata": {
+      }
+    },
+    "s3Bucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {},
+      "Metadata": {
+      }
+    }
+  }
+}
