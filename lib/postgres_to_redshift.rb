@@ -112,6 +112,7 @@ class PostgresToRedshift
       zip.finish
       tmpfile.rewind
       upload_table(table, tmpfile, chunk)
+      source_connection.reset
     ensure
       zip.close unless zip.closed?
       tmpfile.unlink
