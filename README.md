@@ -34,6 +34,14 @@ export S3_DATABASE_EXPORT_BUCKET='some-bucket-to-use'
 postgres_to_redshift
 ```
 
+Optional flags:
+
+```bash
+# Optional debug flag if you'd like the copy job to ignore Redshift loading errors
+# and keep going.
+export IGNORE_LOADING_ERRORS_AND_CONTINUE='true'
+```
+
 ## Contributing
 
 1. Fork it ( https://github.com/kitchensurfing/postgres_to_redshift/fork )
