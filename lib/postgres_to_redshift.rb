@@ -139,25 +139,38 @@ class PostgresToRedshift
 
       target_connection.exec('COMMIT;')
 
-    rescue PG::InternalError => e
-      target_connection.exec('ROLLBACK;')
+    rescue PG::InternalError => exception
+      handle_pg_exception(table, exception)
+    end
+  end
 
-      print_last_redshift_loading_error if e.message.include?('stl_load_errors')
+  def handle_pg_exception(table, exception)
+    target_connection.exec('ROLLBACK;')
 
-      continue_after_error =
-        !ENV['IGNORE_LOADING_ERRORS_AND_CONTINUE'].nil? &&
-        ENV['IGNORE_LOADING_ERRORS_AND_CONTINUE'].downcase == 'true'
+    if exception.message.include?('stl_load_errors')
+      puts exception.message
+      puts "ERROR:  Last entry in Redshift's 'stl_load_errors' table:"
+      print_last_redshift_loading_error
+    else
+      puts 'ERROR:  Unhandled PG error:'
+      puts exception.message
+      puts exception.backtrace.inspect
+    end
 
-      raise unless continue_after_error
+    continue_after_error =
+      !ENV['WARN_ON_LOADING_ERROR'].nil? && ENV['WARN_ON_LOADING_ERROR'].casecmp('true') == 0
+
+    if continue_after_error
+      puts "\nINFO:  Skipping '#{table.name}' and continuing on."
+    else
+      exit
     end
   end
 
   def print_last_redshift_loading_error
-    puts 'ERROR: Last Redshift loading error:'
     error_row = target_connection.exec('SELECT * FROM pg_catalog.stl_load_errors ORDER BY starttime DESC LIMIT 1').first
     error_row.each do |k, v|
       puts "\t#{k}: #{v}"
     end
-    puts
   end
 end

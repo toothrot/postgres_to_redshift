@@ -37,9 +37,9 @@ postgres_to_redshift
 Optional flags:
 
 ```bash
-# Optional debug flag if you'd like the copy job to ignore Redshift loading errors
-# and keep going.
-export IGNORE_LOADING_ERRORS_AND_CONTINUE='true'
+# Optional debug flag if you'd like the copy job to only warn on Redshift loading errors
+# (instead of exiting) and keep going.
+export WARN_ON_LOADING_ERROR='true'
 ```
 
 ## Contributing
