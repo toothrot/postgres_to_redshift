@@ -22,6 +22,7 @@ class PostgresToRedshift
     update_tables = PostgresToRedshift.new
 
     update_tables.tables.each do |table|
+      next unless table.name == 'mass_emails' # FIXME
       target_connection.exec("CREATE TABLE IF NOT EXISTS public.#{target_connection.quote_ident(table.target_table_name)} (#{table.columns_for_create})")
 
       update_tables.copy_table(table)
@@ -151,19 +152,15 @@ class PostgresToRedshift
       puts exception.message
       puts "ERROR:  Last entry in Redshift's 'stl_load_errors' table:"
       print_last_redshift_loading_error
+
+      if !ENV['WARN_ON_LOADING_ERROR'].nil? && ENV['WARN_ON_LOADING_ERROR'].casecmp('true') == 0
+        puts "\nINFO:  Skipping '#{table.name}' and continuing on."
+      else
+        exit
+      end
     else
       puts 'ERROR:  Unhandled PG error:'
-      puts exception.message
-      puts exception.backtrace.inspect
-    end
-
-    continue_after_error =
-      !ENV['WARN_ON_LOADING_ERROR'].nil? && ENV['WARN_ON_LOADING_ERROR'].casecmp('true') == 0
-
-    if continue_after_error
-      puts "\nINFO:  Skipping '#{table.name}' and continuing on."
-    else
-      exit
+      raise
     end
   end
 
