@@ -25,6 +25,8 @@ class PostgresToRedshift
   def self.update_tables
     update_tables = PostgresToRedshift.new
 
+    update_schema
+
     update_tables.tables.each do |table|
       target_connection.exec("CREATE TABLE IF NOT EXISTS #{target_schema}.#{target_connection.quote_ident(table.target_table_name)} (#{table.columns_for_create})")
 
