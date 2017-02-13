@@ -19,14 +19,14 @@ class PostgresToRedshift
   GIGABYTE = MEGABYTE * 1024
 
   def self.update_schema
-    target_connection.exec("CREATE SCHEMA IF NOT EXISTS #{self.target_schema}")
+    target_connection.exec("CREATE SCHEMA IF NOT EXISTS #{target_schema}")
   end
 
   def self.update_tables
     update_tables = PostgresToRedshift.new
 
     update_tables.tables.each do |table|
-      target_connection.exec("CREATE TABLE IF NOT EXISTS #{self.target_schema}.#{target_connection.quote_ident(table.target_table_name)} (#{table.columns_for_create})")
+      target_connection.exec("CREATE TABLE IF NOT EXISTS #{target_schema}.#{target_connection.quote_ident(table.target_table_name)} (#{table.columns_for_create})")
 
       update_tables.copy_table(table)
 
