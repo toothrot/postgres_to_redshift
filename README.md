@@ -30,6 +30,7 @@ export POSTGRES_TO_REDSHIFT_TARGET_URI='postgres://username:password@host:port/d
 export S3_DATABASE_EXPORT_ID='yourid'
 export S3_DATABASE_EXPORT_KEY='yourkey'
 export S3_DATABASE_EXPORT_BUCKET='some-bucket-to-use'
+export POSTGRES_TO_REDSHIFT_TARGET_SCHEMA='schema_name'
 
 postgres_to_redshift
 ```
