@@ -9,7 +9,7 @@ require "postgres_to_redshift/column"
 
 class PostgresToRedshift
   class << self
-    attr_accessor :source_uri, :target_uri, :target_schema, :source_schema
+    attr_accessor :source_uri, :target_uri, :target_schema, :source_schema, :delete_option
   end
 
   attr_reader :source_connection, :target_connection, :s3
@@ -22,7 +22,7 @@ class PostgresToRedshift
     update_tables = PostgresToRedshift.new
 
     update_tables.tables.each do |table|
-      target_connection.exec("CREATE TABLE IF NOT EXISTS #{target_schema}.#{target_connection.quote_ident(table.target_table_name)} (#{table.columns_for_create})")
+      #target_connection.exec("CREATE TABLE IF NOT EXISTS #{target_schema}.#{target_connection.quote_ident(table.target_table_name)} (#{table.columns_for_create})")
 
       update_tables.copy_table(table)
 
@@ -44,6 +44,10 @@ class PostgresToRedshift
 
   def self.target_uri
     @target_uri ||= URI.parse(ENV['POSTGRES_TO_REDSHIFT_TARGET_URI'])
+  end
+
+  def self.delete_option
+    @delete_option ||= ENV["POSTGRES_TO_REDSHIFT_DELETE_OPTION"]
   end
 
   def self.source_connection
@@ -101,7 +105,7 @@ class PostgresToRedshift
     bucket.objects.with_prefix("#{PostgresToRedshift.target_schema}/#{table.target_table_name}.psv.gz").delete_all
 
     begin
-      puts "Downloading #{table}"
+      puts "DOWNLOADING #{table}"
       copy_command = "COPY (SELECT #{table.columns_for_copy} FROM #{PostgresToRedshift.source_schema}.#{table.name}) TO STDOUT WITH DELIMITER '|'"
 
       source_connection.copy_data(copy_command) do
@@ -130,26 +134,40 @@ class PostgresToRedshift
   end
 
   def upload_table(table, buffer, chunk)
-    puts "Uploading #{table.target_table_name}.#{chunk}"
+    puts "UPLOADING #{table.target_table_name}.#{chunk}"
 
     bucket.objects["#{PostgresToRedshift.target_schema}/#{table.target_table_name}.psv.gz.#{chunk}"].write(buffer, acl: :authenticated_read)
 
   end
 
   def import_table(table)
-    puts "Importing #{table.target_table_name}"
-    target_connection.exec("DROP TABLE IF EXISTS #{PostgresToRedshift.target_schema}.#{table.target_table_name}_updating")
 
-    target_connection.exec("BEGIN;")
+    puts "IMPORTING #{PostgresToRedshift.target_schema}.#{table.target_table_name}"
 
-    target_connection.exec("ALTER TABLE #{PostgresToRedshift.target_schema}.#{target_connection.quote_ident(table.target_table_name)} RENAME TO #{table.target_table_name}_updating")
+    if PostgresToRedshift.delete_option == 'drop'
 
-    target_connection.exec("CREATE TABLE #{PostgresToRedshift.target_schema}.#{target_connection.quote_ident(table.target_table_name)} (#{table.columns_for_create})")
+      puts "DROP TABLE IF EXISTS #{PostgresToRedshift.target_schema}.#{table.target_table_name}"
+      target_connection.exec("DROP TABLE IF EXISTS #{PostgresToRedshift.target_schema}.#{table.target_table_name}")
 
-    target_connection.exec("COPY #{PostgresToRedshift.target_schema}.#{target_connection.quote_ident(table.target_table_name)} FROM 's3://#{ENV['S3_DATABASE_EXPORT_BUCKET']}/#{PostgresToRedshift.target_schema}/#{table.target_table_name}.psv.gz' CREDENTIALS 'aws_access_key_id=#{ENV['S3_DATABASE_EXPORT_ID']};aws_secret_access_key=#{ENV['S3_DATABASE_EXPORT_KEY']}' GZIP TRUNCATECOLUMNS ESCAPE DELIMITER as '|';")
+      puts "CREATE TABLE #{PostgresToRedshift.target_schema}.#{table.target_table_name}"
+      target_connection.exec("CREATE TABLE #{PostgresToRedshift.target_schema}.#{target_connection.quote_ident(table.target_table_name)} (#{table.columns_for_create})")
 
-    target_connection.exec("COMMIT;")
+      puts "COPY TABLE to #{PostgresToRedshift.target_schema}.#{table.target_table_name}"
+      target_connection.exec("COPY #{PostgresToRedshift.target_schema}.#{target_connection.quote_ident(table.target_table_name)} FROM 's3://#{ENV['S3_DATABASE_EXPORT_BUCKET']}/#{PostgresToRedshift.target_schema}/#{table.target_table_name}.psv.gz' CREDENTIALS 'aws_access_key_id=#{ENV['S3_DATABASE_EXPORT_ID']};aws_secret_access_key=#{ENV['S3_DATABASE_EXPORT_KEY']}' GZIP TRUNCATECOLUMNS ESCAPE DELIMITER as '|';")
 
-    target_connection.exec("DROP TABLE #{PostgresToRedshift.target_schema}.#{table.target_table_name}_updating")
+    elsif PostgresToRedshift.delete_option == 'truncate'
+
+      puts "CREATE TABLE IF NOT EXISTS #{PostgresToRedshift.target_schema}.#{table.target_table_name}"
+      target_connection.exec("CREATE TABLE IF NOT EXISTS #{PostgresToRedshift.target_schema}.#{target_connection.quote_ident(table.target_table_name)} (#{table.columns_for_create})")
+
+      puts "TRUNCATE TABLE #{PostgresToRedshift.target_schema}.#{table.target_table_name}"
+      target_connection.exec("TRUNCATE TABLE #{PostgresToRedshift.target_schema}.#{table.target_table_name}")
+
+      puts "COPY TABLE to #{PostgresToRedshift.target_schema}.#{table.target_table_name}"
+      target_connection.exec("COPY #{PostgresToRedshift.target_schema}.#{target_connection.quote_ident(table.target_table_name)} FROM 's3://#{ENV['S3_DATABASE_EXPORT_BUCKET']}/#{PostgresToRedshift.target_schema}/#{table.target_table_name}.psv.gz' CREDENTIALS 'aws_access_key_id=#{ENV['S3_DATABASE_EXPORT_ID']};aws_secret_access_key=#{ENV['S3_DATABASE_EXPORT_KEY']}' GZIP TRUNCATECOLUMNS ESCAPE DELIMITER as '|';")
+
+    else
+      puts "missing delete_option"
+    end
   end
 end

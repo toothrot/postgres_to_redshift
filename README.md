@@ -32,6 +32,7 @@ export S3_DATABASE_EXPORT_KEY='yourkey'
 export S3_DATABASE_EXPORT_BUCKET='some-bucket-to-use'
 export POSTGRES_TO_REDSHIFT_SOURCE_SCHEMA='schema_name'
 export POSTGRES_TO_REDSHIFT_TARGET_SCHEMA='schema_name'  #make sure target_schema exist in target DB
+export POSTGRES_TO_REDSHIFT_DELETE_OPTION='truncate|drop'	#this define whether the destination tables should be truncated or drop
 
 postgres_to_redshift
 ```
