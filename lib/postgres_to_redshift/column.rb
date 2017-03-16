@@ -58,6 +58,7 @@ class PostgresToRedshift::Column
     "time without time zone" => "CHARACTER VARYING(65535)",
     "time with time zone" => "CHARACTER VARYING(65535)",
     "time" => "CHARACTER VARYING(65535)",
+    "inet" => "CHARACTER VARYING(65535)",
   }
 
   def initialize(attributes: )
