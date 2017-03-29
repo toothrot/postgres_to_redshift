@@ -60,6 +60,7 @@ class PostgresToRedshift::Column
     "time" => "CHARACTER VARYING(65535)",
     "inet" => "CHARACTER VARYING(65535)",
     "uuid" => "CHARACTER VARYING(65535)",
+    "numeric" => "NUMERIC(18,4)",
   }
 
   def initialize(attributes: )
