@@ -37,7 +37,7 @@ class PostgresToRedshift
 
     def columns_for_create
       columns.map do |column|
-        %Q["#{column.name}" #{column.data_type_for_copy}]
+        column.name == 'id' ? %Q["#{column.name}" #{column.data_type_for_copy} sortkey distkey] : %Q["#{column.name}" #{column.data_type_for_copy}]
       end.join(", ")
     end
 
