@@ -1,11 +1,11 @@
 # coding: utf-8
 lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'postgres_to_redshift/version'
+require 'helper/version'
 
 Gem::Specification.new do |spec|
   spec.name          = "postgres_to_redshift"
-  spec.version       = PostgresToRedshift::VERSION
+  spec.version       = Helper::VERSION
   spec.authors       = ["Alex Rakoczy"]
   spec.email         = ["arakoczy@gmail.com"]
   spec.summary       = %q{Load postgres databases into Amazon Redshift}

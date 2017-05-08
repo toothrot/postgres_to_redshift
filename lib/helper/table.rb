@@ -11,7 +11,7 @@
 # is_typed                     | NO
 # commit_action                |
 #
-class PostgresToRedshift
+class Helper
   class Table
     attr_accessor :attributes, :columns
 

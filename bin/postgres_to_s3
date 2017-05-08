@@ -1,0 +1,5 @@
+#!/usr/bin/env ruby
+
+require 'postgres_to_s3'
+
+PostgresToS3.archive_tables
