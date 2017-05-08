@@ -7,4 +7,4 @@ rvm:
 before_script:
   - psql -c 'create database travis_ci_test;' -U postgres
 env:
-  - POSTGRES_TO_REDSHIFT_SOURCE_URI=postgres://postgres@localhost/travis_ci_test
+  - P2RS_SOURCE_URI=postgres://postgres@localhost/travis_ci_test

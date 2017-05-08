@@ -43,7 +43,7 @@
 # generation_expression    |
 # is_updatable             | YES
 #
-class PostgresToRedshift::Column
+class Helper::Column
   attr_accessor :attributes
 
   CAST_TYPES_FOR_COPY = {

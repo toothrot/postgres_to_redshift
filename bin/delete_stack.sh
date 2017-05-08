@@ -10,19 +10,19 @@ if [ $? -ne 0 ]; then
 exit 1
 fi
 
-S3_DATABASE_EXPORT_BUCKET=$(aws cloudformation describe-stack-resources --profile p2r --stack-name p2r --logical-resource-id s3Bucket | jq -r ".StackResources[0].PhysicalResourceId")
+P2RS_S3_EXPORT_BUCKET=$(aws cloudformation describe-stack-resources --profile p2r --stack-name p2r --logical-resource-id s3Bucket | jq -r ".StackResources[0].PhysicalResourceId")
 if [ $? -ne 0 ]; then
-    echo ${S3_DATABASE_EXPORT_BUCKET}
+    echo ${P2RS_S3_EXPORT_BUCKET}
     exit $?
 fi
 
 # Make sure we're trying to empty the right bucket
-echo ${S3_DATABASE_EXPORT_BUCKET} | grep -e '^p2r-s3bucket'
+echo ${P2RS_S3_EXPORT_BUCKET} | grep -e '^p2r-s3bucket'
 if [ $? -ne 0 ]; then
-    echo ${S3_DATABASE_EXPORT_BUCKET}
+    echo ${P2RS_S3_EXPORT_BUCKET}
     exit $?
 fi
-aws s3 rm s3://${S3_DATABASE_EXPORT_BUCKET} --recursive --profile p2r
+aws s3 rm s3://${P2RS_S3_EXPORT_BUCKET} --recursive --profile p2r
 
 aws cloudformation delete-stack --profile p2r --stack-name p2r
 if [ $? -ne 0 ]; then
