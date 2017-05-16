@@ -116,7 +116,7 @@ class PostgresToS3
   end
 
   def upload_table(table, buffer, chunk)
-    timestamp = Time.now.to_is
+    timestamp = Time.now.to_i
 
     puts "UPLOADING #{PostgresToS3.service_name}/#{PostgresToS3.service_name}-#{PostgresToS3.archive_date}-#{table.target_table_name}-#{timestamp}.psv.gz.#{chunk}"
 
