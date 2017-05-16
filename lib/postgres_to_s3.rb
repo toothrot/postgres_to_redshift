@@ -116,9 +116,11 @@ class PostgresToS3
   end
 
   def upload_table(table, buffer, chunk)
-    puts "UPLOADING #{PostgresToS3.service_name}/#{PostgresToS3.service_name}-#{PostgresToS3.archive_date}-#{table.target_table_name}.psv.gz.#{chunk}"
+    timestamp = Time.now.to_is
 
-    bucket.objects["#{PostgresToS3.service_name}/#{PostgresToS3.service_name}-#{PostgresToS3.archive_date}-#{table.target_table_name}.psv.gz.#{chunk}"].write(buffer, acl: :authenticated_read)
+    puts "UPLOADING #{PostgresToS3.service_name}/#{PostgresToS3.service_name}-#{PostgresToS3.archive_date}-#{table.target_table_name}-#{timestamp}.psv.gz.#{chunk}"
+
+    bucket.objects["#{PostgresToS3.service_name}/#{PostgresToS3.service_name}-#{PostgresToS3.archive_date}-#{table.target_table_name}-#{timestamp}.psv.gz.#{chunk}"].write(buffer, acl: :authenticated_read)
 
   end
 end
