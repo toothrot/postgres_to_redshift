@@ -251,7 +251,7 @@ class PostgresToRedshift
       target_connection.exec(copy_from_command)
       puts "DELETE FROM #{PostgresToRedshift.target_schema}.#{table.target_table_name} USING #{PostgresToRedshift.target_schema}.#{table.target_table_name}_temp T WHERE #{PostgresToRedshift.target_schema}.#{table.target_table_name}.id = T.id"
       target_connection.exec("DELETE FROM #{PostgresToRedshift.target_schema}.#{table.target_table_name} USING #{PostgresToRedshift.target_schema}.#{table.target_table_name}_temp T WHERE #{PostgresToRedshift.target_schema}.#{table.target_table_name}.id = T.id")
-      puts "INSERT INTO #{PostgresToRedshift.target_schema}.#{table.target_table_name} SELECT * FROM #{PostgresToRedshift.target_schema}.#{table.target_table_name}_TEMP"
+      puts "INSERT INTO #{PostgresToRedshift.target_schema}.#{table.target_table_name} SELECT * FROM #{PostgresToRedshift.target_schema}.#{table.target_table_name}_temp"
       target_connection.exec("INSERT INTO #{PostgresToRedshift.target_schema}.#{table.target_table_name} SELECT * FROM #{PostgresToRedshift.target_schema}.#{table.target_table_name}_temp")
       puts "DROP TABLE #{PostgresToRedshift.target_schema}.#{table.target_table_name}_temp"
       target_connection.exec("DROP TABLE #{PostgresToRedshift.target_schema}.#{table.target_table_name}_temp")
