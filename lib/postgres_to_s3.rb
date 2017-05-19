@@ -9,7 +9,7 @@ require "helper/column"
 
 class PostgresToS3
   class << self
-    attr_accessor :source_uri, :source_schema, :source_table, :service_name, :archive_date
+    attr_accessor :source_uri, :source_schema, :source_table, :service_name, :archive_date, :archive_field
   end
 
   attr_reader :source_connection, :s3
@@ -46,6 +46,10 @@ class PostgresToS3
     @archive_date ||= ENV['P2S3_ARCHIVE_DATE']
   end
 
+  def self.archive_field
+    @archive_field ||= ENV['P2S3_ARCHIVE_FIELD']
+  end
+
   def self.source_connection
     unless instance_variable_defined?(:"@source_connection")
       @source_connection = PG::Connection.new(host: source_uri.host, port: source_uri.port, user: source_uri.user || ENV['USER'], password: source_uri.password, dbname: source_uri.path[1..-1])
@@ -60,16 +64,29 @@ class PostgresToS3
   end
 
   def tables
-    source_connection.exec("SELECT * FROM information_schema.tables WHERE table_schema = '#{PostgresToS3.source_schema}' AND table_name = '#{PostgresToS3.source_table}'").map do |table_attributes|
-      table = Helper::Table.new(attributes: table_attributes)
-      next if table.name =~ /^pg_/
+    table_command = <<-SQL
+      SELECT t.*
+      FROM information_schema.tables t
+        INNER JOIN information_schema.columns c1 ON t.table_name = c1.table_name AND t.table_schema = c1.table_schema AND c1.column_name = 'id'
+        INNER JOIN information_schema.columns c2 ON t.table_name = c2.table_name AND t.table_schema = c2.table_schema AND c2.column_name = '#{PostgresToS3.archive_field}'
+      WHERE t.table_schema = '#{PostgresToS3.source_schema}' AND t.table_name = '#{PostgresToS3.source_table}'
+    SQL
+    source_connection.exec(table_command).map do |table_attributes|
+    table = Helper::Table.new(attributes: table_attributes)
+    next if table.name =~ /^pg_/
       table.columns = column_definitions(table)
       table
     end.compact
   end
 
   def column_definitions(table)
-    source_connection.exec("SELECT * FROM information_schema.columns WHERE table_schema = '#{PostgresToS3.source_schema}' AND table_name='#{table.name}' order by ordinal_position")
+    column_command = <<-SQL
+      SELECT *
+      FROM information_schema.columns
+      WHERE table_schema = '#{PostgresToS3.source_schema}' AND table_name='#{table.name}'
+      ORDER BY ordinal_position
+    SQL
+    source_connection.exec(column_command)
   end
 
   def s3
@@ -88,9 +105,14 @@ class PostgresToS3
 
     begin
       puts "DOWNLOADING #{table}"
-      copy_command = "COPY (SELECT #{table.columns_for_copy} FROM #{PostgresToS3.source_schema}.#{table.name} WHERE lower(service_name) = lower('#{PostgresToS3.service_name}') AND created_at::date = '#{PostgresToS3.archive_date}') TO STDOUT WITH DELIMITER '|'"
-
-      source_connection.copy_data(copy_command) do
+      copy_to_command = <<-SQL
+        COPY (
+          SELECT #{table.columns_for_copy}
+          FROM #{PostgresToS3.source_schema}.#{table.name}
+          WHERE lower(service_name) = lower('#{PostgresToS3.service_name}') AND #{PostgresToS3.archive_field}::date = '#{PostgresToS3.archive_date}'
+          ) TO STDOUT WITH DELIMITER '|'
+      SQL
+      source_connection.copy_data(copy_to_command) do
         while row = source_connection.get_copy_data
           zip.write(row)
           if (zip.pos > chunksize)
