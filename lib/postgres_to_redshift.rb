@@ -255,6 +255,10 @@ class PostgresToRedshift
       target_connection.exec("INSERT INTO #{PostgresToRedshift.target_schema}.#{table.target_table_name} SELECT * FROM #{PostgresToRedshift.target_schema}.#{table.target_table_name}_temp")
       puts "DROP TABLE #{PostgresToRedshift.target_schema}.#{table.target_table_name}_temp"
       target_connection.exec("DROP TABLE #{PostgresToRedshift.target_schema}.#{table.target_table_name}_temp")
+      puts "VACUUM #{PostgresToRedshift.target_schema}.#{table.target_table_name}"
+      target_connection.exec("VACUUM #{PostgresToRedshift.target_schema}.#{table.target_table_name}")
+      puts "ANALYZE #{PostgresToRedshift.target_schema}.#{table.target_table_name}"
+      target_connection.exec("ANALYZE #{PostgresToRedshift.target_schema}.#{table.target_table_name}")
     else
       puts "ERROR: variables not consistent with application specification"
     end
