@@ -2,10 +2,12 @@ require "helper/version"
 require 'pg'
 require 'uri'
 require 'aws-sdk-v1'
+require 'slack-notifier'
 require 'zlib'
 require 'tempfile'
 require "helper/table"
 require "helper/column"
+require "helper/slack_notifier"
 
 class PostgresToS3
   class << self
@@ -20,10 +22,15 @@ class PostgresToS3
 
   def self.archive_tables
     archive_tables = PostgresToS3.new
-
+    if archive_tables.tables.size == 0
+      message = "[P2S3]MISSING: Table(s) not found using the following parameters:\n[P2S3]MISSING: source_schema: #{ENV["P2S3_SOURCE_SCHEMA"]}\n[P2S3]MISSING: source_table: #{ENV["P2S3_SOURCE_TABLE"]}\n[P2S3]MISSING: service_name: #{ENV["P2S3_SERVICE_NAME"]}\n[P2S3]MISSING: archive_field: #{ENV["P2S3_ARCHIVE_FIELD"]}"
+      SLACK_NOTIFIER.ping message
+    end
     archive_tables.tables.each do |table|
       archive_tables.copy_table(table)
     end
+  rescue => e
+    SLACK_NOTIFIER.ping "[P2S3]#{e.message}"
   end
 
   def self.source_uri
@@ -102,6 +109,7 @@ class PostgresToS3
     zip = Zlib::GzipWriter.new(tmpfile)
     chunksize = 5 * GIGABYTE # uncompressed
     chunk = 1
+    timestamp = Time.now.to_i
 
     begin
       puts "DOWNLOADING #{table}"
@@ -118,7 +126,7 @@ class PostgresToS3
           if (zip.pos > chunksize)
             zip.finish
             tmpfile.rewind
-            upload_table(table, tmpfile, chunk)
+            upload_table(table, tmpfile, chunk, timestamp)
             chunk += 1
             zip.close unless zip.closed?
             tmpfile.unlink
@@ -129,7 +137,9 @@ class PostgresToS3
       end
       zip.finish
       tmpfile.rewind
-      upload_table(table, tmpfile, chunk)
+      upload_table(table, tmpfile, chunk, timestamp)
+      message = "[P2S3]SUCCESS: Archived #{PostgresToS3.service_name}/#{PostgresToS3.service_name}-#{PostgresToS3.archive_date}-#{table.target_table_name} | Total Chunk(s): #{chunk}"
+      SLACK_NOTIFIER.ping message
       source_connection.reset
     ensure
       zip.close unless zip.closed?
@@ -137,12 +147,12 @@ class PostgresToS3
     end
   end
 
-  def upload_table(table, buffer, chunk)
-    timestamp = Time.now.to_i
-
+  def upload_table(table, buffer, chunk, timestamp)
     puts "UPLOADING #{PostgresToS3.service_name}/#{PostgresToS3.service_name}-#{PostgresToS3.archive_date}-#{table.target_table_name}-#{timestamp}.psv.gz.#{chunk}"
 
     bucket.objects["#{PostgresToS3.service_name}/#{PostgresToS3.service_name}-#{PostgresToS3.archive_date}-#{table.target_table_name}-#{timestamp}.psv.gz.#{chunk}"].write(buffer, acl: :authenticated_read)
 
+    message = "[P2S3]FINISH: Archived #{PostgresToS3.service_name}/#{PostgresToS3.service_name}-#{PostgresToS3.archive_date}-#{table.target_table_name}-#{timestamp}.psv.gz.#{chunk}"
+    SLACK_NOTIFIER.ping message
   end
 end
