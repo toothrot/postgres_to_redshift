@@ -14,7 +14,7 @@ class PostgresToRedshift
     attr_accessor :source_uri, :source_schema, :source_table, :target_uri, :target_schema, :delete_option, :condition_field, :condition_value
   end
 
-  attr_reader :source_connection, :target_connection, :s3
+  attr_reader :source_connection, :target_connection, :s3, :table
 
   KILOBYTE = 1024
   MEGABYTE = KILOBYTE * 1024
@@ -31,11 +31,11 @@ class PostgresToRedshift
       update_tables.import_table(table)
     end
     if (PostgresToRedshift.delete_option != 'incremental')
-      message = "[P2RS]SUCCESS: Table(s) #{PostgresToRedshift.delete_option} and copy to RedShift SCHEMA: #{PostgresToRedshift.target_schema}"
+      message = "[P2RS]SUCCESS: Table(s) #{PostgresToRedshift.delete_option} and copy to RedShift | SCHEMA: #{PostgresToRedshift.target_schema}"
       SLACK_NOTIFIER.ping message
     end
   rescue => e
-    SLACK_NOTIFIER.ping "[P2RS]#{e.message.gsub("\r","").gsub("\n","")} SCHEMA: #{PostgresToRedshift.target_schema} OPTION: #{PostgresToRedshift.delete_option}"
+    SLACK_NOTIFIER.ping "[P2RS]#{e.message.gsub("\r"," ").gsub("\n"," ")}| SCHEMA: #{PostgresToRedshift.target_schema} | TABLE: #{update_tables.table.target_table_name}  | OPTION: #{PostgresToRedshift.delete_option}"
   end
 
   def self.source_uri
@@ -132,7 +132,7 @@ class PostgresToRedshift
       puts "ERROR: variables not consistent with application specification"
     end
     source_connection.exec(table_command).map do |table_attributes|
-    table = Helper::Table.new(attributes: table_attributes)
+    @table = Helper::Table.new(attributes: table_attributes)
     next if table.name =~ /^pg_/
       table.columns = column_definitions(table)
       table
