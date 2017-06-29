@@ -30,7 +30,7 @@ class PostgresToS3
       archive_tables.copy_table(table)
     end
   rescue => e
-    SLACK_NOTIFIER.ping "[P2S3]#{e.message}"
+    SLACK_NOTIFIER.ping "[P2S3]#{e.message.gsub("\r"," ").gsub("\n"," ")} | SERVICE: #{PostgresToS3.service_name} | TABLE: #{PostgresToS3.source_table} | DATE: #{PostgresToS3.archive_date}"
   end
 
   def self.source_uri
@@ -138,7 +138,7 @@ class PostgresToS3
       zip.finish
       tmpfile.rewind
       upload_table(table, tmpfile, chunk, timestamp)
-      message = "[P2S3]SUCCESS: Archived #{PostgresToS3.service_name}/#{PostgresToS3.service_name}-#{PostgresToS3.archive_date}-#{table.target_table_name} | Total Chunk(s): #{chunk}"
+      message = "[P2S3]SUCCESS: Archived #{PostgresToS3.service_name}/#{PostgresToS3.service_name}-#{PostgresToS3.archive_date}-#{table.target_table_name} | Total Chunk(s): #{chunk} | SERVICE: #{PostgresToS3.service_name} | TABLE: #{PostgresToS3.source_table} | DATE: #{PostgresToS3.archive_date}"
       SLACK_NOTIFIER.ping message
       source_connection.reset
     ensure
