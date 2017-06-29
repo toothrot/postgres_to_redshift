@@ -31,11 +31,11 @@ class PostgresToRedshift
       update_tables.import_table(table)
     end
     if (PostgresToRedshift.delete_option != 'incremental')
-      message = "[P2RS]SUCCESS: Table(s) #{PostgresToRedshift.delete_option} and copy to RedShift | SCHEMA: #{PostgresToRedshift.target_schema}"
+      message = "[P2RS]SUCCESS: Table(s) #{PostgresToRedshift.delete_option} and copy to RedShift | SCHEMA: #{PostgresToRedshift.target_schema} | TABLE: #{PostgresToRedshift.source_table} | OPTION: #{PostgresToRedshift.delete_option}"
       SLACK_NOTIFIER.ping message
     end
   rescue => e
-    SLACK_NOTIFIER.ping "[P2RS]#{e.message.gsub("\r"," ").gsub("\n"," ")}| SCHEMA: #{PostgresToRedshift.target_schema} | TABLE: #{update_tables.table.target_table_name}  | OPTION: #{PostgresToRedshift.delete_option}"
+    SLACK_NOTIFIER.ping "[P2RS]#{e.message.gsub("\r"," ").gsub("\n"," ")} | SCHEMA: #{PostgresToRedshift.target_schema} | TABLE: #{update_tables.table.target_table_name} | OPTION: #{PostgresToRedshift.delete_option}"
   end
 
   def self.source_uri
