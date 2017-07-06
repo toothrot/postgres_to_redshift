@@ -49,6 +49,7 @@ class PostgresToRedshift::Column
   CAST_TYPES_FOR_COPY = {
     "text" => "CHARACTER VARYING(65535)",
     "json" => "CHARACTER VARYING(65535)",
+    "jsonb" => "CHARACTER VARYING(65535)",
     "bytea" => "CHARACTER VARYING(65535)",
     "money" => "DECIMAL(19,2)",
     "oid" => "CHARACTER VARYING(65535)",
