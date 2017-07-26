@@ -229,8 +229,8 @@ class PostgresToRedshift
         GZIP TRUNCATECOLUMNS ESCAPE DELIMITER as '|' COMPUPDATE ON
       SQL
       if PostgresToRedshift.delete_option == 'drop'
-        puts "DROP TABLE IF EXISTS #{PostgresToRedshift.target_schema}.#{table.target_table_name}"
-        target_connection.exec("DROP TABLE IF EXISTS #{PostgresToRedshift.target_schema}.#{table.target_table_name}")
+        puts "DROP TABLE IF EXISTS #{PostgresToRedshift.target_schema}.#{table.target_table_name} CASCADE"
+        target_connection.exec("DROP TABLE IF EXISTS #{PostgresToRedshift.target_schema}.#{table.target_table_name} CASCADE")
         puts "CREATE TABLE #{PostgresToRedshift.target_schema}.#{table.target_table_name}"
         target_connection.exec("CREATE TABLE #{PostgresToRedshift.target_schema}.#{table.target_table_name} (#{table.columns_for_create})")
         puts "COPY TABLE to #{PostgresToRedshift.target_schema}.#{table.target_table_name}"
