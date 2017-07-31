@@ -140,12 +140,21 @@ class PostgresToRedshift
   end
 
   def column_definitions(table)
-    column_command = <<-SQL
-      SELECT *
-      FROM information_schema.columns
-      WHERE table_schema = '#{PostgresToRedshift.source_schema}' AND table_name='#{table.name}' AND LOWER(column_name) NOT LIKE '%password%' AND LOWER(column_name) NOT LIKE '%token%' AND lower(column_name) NOT LIKE '%encrypted%'
-      ORDER BY ordinal_position
-    SQL
+    if (PostgresToRedshift.target_schema == 'jekyll_data' && table.name == 'cortex_trading_groups') #exception for cortex_trading_groups to not exclude any columns
+      column_command = <<-SQL
+        SELECT *
+        FROM information_schema.columns
+        WHERE table_schema = '#{PostgresToRedshift.source_schema}' AND table_name='#{table.name}'
+        ORDER BY ordinal_position
+      SQL
+    else
+      column_command = <<-SQL
+        SELECT *
+        FROM information_schema.columns
+        WHERE table_schema = '#{PostgresToRedshift.source_schema}' AND table_name='#{table.name}' AND LOWER(column_name) NOT LIKE '%password%' AND LOWER(column_name) NOT LIKE '%token%' AND lower(column_name) NOT LIKE '%encrypted%'
+        ORDER BY ordinal_position
+      SQL
+    end
     source_connection.exec(column_command)
   end
 
