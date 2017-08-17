@@ -23,4 +23,6 @@ Gem::Specification.new do |spec|
   spec.add_dependency "pg", "~> 0.18.0"
   spec.add_dependency "aws-sdk-v1", "~> 1.54"
   spec.add_dependency "slack-notifier", "~>1.5.1"
+
+  spec.executables   = ["postgres_to_redshift", "postgres_to_s3", "redshift_exec"]
 end

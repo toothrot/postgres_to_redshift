@@ -1,0 +1,5 @@
+#!/usr/bin/env ruby
+
+require 'redshift_exec'
+
+RedshiftExec.exec_sql
