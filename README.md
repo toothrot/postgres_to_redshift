@@ -26,6 +26,7 @@ Set your source and target databases, as well as your s3 intermediary.
 
 ### postgres_to_redshift
 ```bash
+export P2RS_INCREMENTAL_BLACKOUT='6' #integer value of the hour in UTC that the incremental job should not be run
 export P2RS_SOURCE_URI='postgres://username:password@host:port/database-name'
 export P2RS_SOURCE_SCHEMA='schema_name'
 export P2RS_SOURCE_TABLE='table_name|ALL' #ALL for all tables in the schema (aside from rails operational tables) eitherwise specify table name
@@ -54,6 +55,18 @@ export P2S3_ARCHIVE_FIELD='name of the date column in the table'
 export P2S3_ARCHIVE_DATE='a date column with format YYYY-MM-DD'
 
 postgres_to_s3
+```
+
+### redshift_exec
+```bash
+export P2RS_S3_EXPORT_ID='yourid' -- same as P2RS (assumption being it is being exected on the single RS instance)
+export P2RS_S3_EXPORT_KEY='yourkey' -- same as P2RS (assumption being it is being exected on the single RS instance)
+export P2RS_TARGET_URI='postgres://username:password@host:port/database-name' -- same as P2RS (assumption being it is being exected on the single RS instance)
+
+export REXE_S3_SCRIPT_BUCKET='some-bucket-to-use'
+export REXE_S3_SCRIPT_NAME='object-name-of-the-sql-script'
+
+redshift_exec
 ```
 
 ## Contributing

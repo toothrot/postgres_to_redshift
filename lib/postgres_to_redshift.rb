@@ -8,6 +8,7 @@ require 'tempfile'
 require "helper/table"
 require "helper/column"
 require "helper/slack_notifier"
+require "pry-rails"
 
 class PostgresToRedshift
   class << self
