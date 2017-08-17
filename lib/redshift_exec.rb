@@ -6,7 +6,7 @@ require 'slack-notifier'
 require 'zlib'
 require 'tempfile'
 require "helper/slack_notifier"
-require "pry-rails"
+#require "pry-rails"
 
 class RedshiftExec
   def self.exec_sql
