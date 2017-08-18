@@ -71,6 +71,10 @@ class PostgresToS3
     self.class.source_connection
   end
 
+  def self.slack_on_success
+    @slack_on_success ||= ENV['SLACK_ON_SUCCESS']
+  end
+
   def tables
     table_command = <<-SQL
       SELECT t.*
@@ -113,7 +117,7 @@ class PostgresToS3
     timestamp = Time.now.to_i
 
     begin
-      puts "DOWNLOADING #{table}"
+      #puts "DOWNLOADING #{table}"
       copy_to_command = <<-SQL
         COPY (
           SELECT #{table.columns_for_copy}
@@ -139,8 +143,10 @@ class PostgresToS3
       zip.finish
       tmpfile.rewind
       upload_table(table, tmpfile, chunk, timestamp)
-      message = "[P2S3]SUCCESS: Archived #{PostgresToS3.service_name}/#{PostgresToS3.service_name}-#{PostgresToS3.archive_date}-#{table.target_table_name} | Total Chunk(s): #{chunk} | SERVICE: #{PostgresToS3.service_name} | TABLE: #{PostgresToS3.source_table} | DATE: #{PostgresToS3.archive_date}"
-      SLACK_NOTIFIER.ping message
+      if (PostgresToS3.slack_on_success == 'true')
+        message = "[P2S3]SUCCESS: Archived #{PostgresToS3.service_name}/#{PostgresToS3.service_name}-#{PostgresToS3.archive_date}-#{table.target_table_name} | Total Chunk(s): #{chunk} | SERVICE: #{PostgresToS3.service_name} | TABLE: #{PostgresToS3.source_table} | DATE: #{PostgresToS3.archive_date}"
+        SLACK_NOTIFIER.ping message
+      end
       source_connection.reset
     ensure
       zip.close unless zip.closed?
@@ -149,11 +155,13 @@ class PostgresToS3
   end
 
   def upload_table(table, buffer, chunk, timestamp)
-    puts "UPLOADING #{PostgresToS3.service_name}/#{PostgresToS3.service_name}-#{PostgresToS3.archive_date}-#{table.target_table_name}-#{timestamp}.psv.gz.#{chunk}"
+    #puts "UPLOADING #{PostgresToS3.service_name}/#{PostgresToS3.service_name}-#{PostgresToS3.archive_date}-#{table.target_table_name}-#{timestamp}.psv.gz.#{chunk}"
 
     bucket.objects["#{PostgresToS3.service_name}/#{PostgresToS3.service_name}-#{PostgresToS3.archive_date}-#{table.target_table_name}-#{timestamp}.psv.gz.#{chunk}"].write(buffer, acl: :authenticated_read)
 
-    message = "[P2S3]FINISH: Archived #{PostgresToS3.service_name}/#{PostgresToS3.service_name}-#{PostgresToS3.archive_date}-#{table.target_table_name}-#{timestamp}.psv.gz.#{chunk}"
-    SLACK_NOTIFIER.ping message
+    if (PostgresToS3.slack_on_success == 'true')
+      message = "[P2S3]FINISH: Archived #{PostgresToS3.service_name}/#{PostgresToS3.service_name}-#{PostgresToS3.archive_date}-#{table.target_table_name}-#{timestamp}.psv.gz.#{chunk}"
+      SLACK_NOTIFIER.ping message
+    end
   end
 end
