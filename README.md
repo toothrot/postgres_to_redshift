@@ -69,6 +69,14 @@ export REXE_S3_SCRIPT_NAME='object-name-of-the-sql-script'
 redshift_exec
 ```
 
+### slack integration
+```bash
+export SLACK_CHANNEL
+export SLACK_USERNAME
+export SLACK_WEBHOOK_URL
+export SLACK_ON_SUCCESS='true/[anything]' -- identify whether or not to send slack msg on job success
+```
+
 ## Contributing
 
 1. Fork it ( https://github.com/kitchensurfing/postgres_to_redshift/fork)

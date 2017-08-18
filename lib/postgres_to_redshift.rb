@@ -31,7 +31,7 @@ class PostgresToRedshift
       update_tables.copy_table(table)
       update_tables.import_table(table)
     end
-    if (PostgresToRedshift.delete_option != 'incremental')
+    if (PostgresToRedshift.slack_on_success == 'true')
       message = "[P2RS]SUCCESS: Table(s) #{PostgresToRedshift.delete_option} and copy to RedShift | SCHEMA: #{PostgresToRedshift.target_schema} | TABLE: #{PostgresToRedshift.source_table} | OPTION: #{PostgresToRedshift.delete_option}"
       SLACK_NOTIFIER.ping message
     end
@@ -94,6 +94,10 @@ class PostgresToRedshift
 
   def target_connection
     self.class.target_connection
+  end
+
+  def self.slack_on_success
+    @slack_on_success ||= ENV['SLACK_ON_SUCCESS']
   end
 
   def tables
@@ -176,7 +180,7 @@ class PostgresToRedshift
     bucket.objects.with_prefix("#{PostgresToRedshift.target_schema}/#{table.target_table_name}.psv.gz").delete_all
 
     begin
-      puts "DOWNLOADING #{table}"
+      #puts "DOWNLOADING #{table}"
       if PostgresToRedshift.delete_option != 'incremental'
         copy_to_command = <<-SQL
           COPY (
@@ -223,14 +227,14 @@ class PostgresToRedshift
   end
 
   def upload_table(table, buffer, chunk)
-    puts "UPLOADING #{PostgresToRedshift.target_schema}/#{table.target_table_name}.psv.gz.#{chunk}"
+    #puts "UPLOADING #{PostgresToRedshift.target_schema}/#{table.target_table_name}.psv.gz.#{chunk}"
 
     bucket.objects["#{PostgresToRedshift.target_schema}/#{table.target_table_name}.psv.gz.#{chunk}"].write(buffer, acl: :authenticated_read)
 
   end
 
   def import_table(table)
-    puts "IMPORTING #{PostgresToRedshift.target_schema}.#{table.target_table_name}"
+    #puts "IMPORTING #{PostgresToRedshift.target_schema}.#{table.target_table_name}"
     if (PostgresToRedshift.delete_option == 'drop' || PostgresToRedshift.delete_option == 'truncate')
       copy_from_command = <<-SQL
         COPY #{PostgresToRedshift.target_schema}.#{table.target_table_name}
@@ -239,18 +243,18 @@ class PostgresToRedshift
         GZIP TRUNCATECOLUMNS ESCAPE DELIMITER as '|' COMPUPDATE ON
       SQL
       if PostgresToRedshift.delete_option == 'drop'
-        puts "DROP TABLE IF EXISTS #{PostgresToRedshift.target_schema}.#{table.target_table_name} CASCADE"
+        #puts "DROP TABLE IF EXISTS #{PostgresToRedshift.target_schema}.#{table.target_table_name} CASCADE"
         target_connection.exec("DROP TABLE IF EXISTS #{PostgresToRedshift.target_schema}.#{table.target_table_name} CASCADE")
-        puts "CREATE TABLE #{PostgresToRedshift.target_schema}.#{table.target_table_name}"
+        #puts "CREATE TABLE #{PostgresToRedshift.target_schema}.#{table.target_table_name}"
         target_connection.exec("CREATE TABLE #{PostgresToRedshift.target_schema}.#{table.target_table_name} (#{table.columns_for_create})")
-        puts "COPY TABLE to #{PostgresToRedshift.target_schema}.#{table.target_table_name}"
+        #puts "COPY TABLE to #{PostgresToRedshift.target_schema}.#{table.target_table_name}"
         target_connection.exec(copy_from_command)
       elsif PostgresToRedshift.delete_option == 'truncate'
-        puts "CREATE TABLE IF NOT EXISTS #{PostgresToRedshift.target_schema}.#{table.target_table_name}"
+        #puts "CREATE TABLE IF NOT EXISTS #{PostgresToRedshift.target_schema}.#{table.target_table_name}"
         target_connection.exec("CREATE TABLE IF NOT EXISTS #{PostgresToRedshift.target_schema}.#{table.target_table_name} (#{table.columns_for_create})")
-        puts "TRUNCATE TABLE #{PostgresToRedshift.target_schema}.#{table.target_table_name}"
+        #puts "TRUNCATE TABLE #{PostgresToRedshift.target_schema}.#{table.target_table_name}"
         target_connection.exec("TRUNCATE TABLE #{PostgresToRedshift.target_schema}.#{table.target_table_name}")
-        puts "COPY TABLE to #{PostgresToRedshift.target_schema}.#{table.target_table_name}"
+        #puts "COPY TABLE to #{PostgresToRedshift.target_schema}.#{table.target_table_name}"
         target_connection.exec(copy_from_command)
       else
         puts "ERROR: variables not consistent with application specification"
@@ -262,17 +266,17 @@ class PostgresToRedshift
         CREDENTIALS 'aws_access_key_id=#{ENV['P2RS_S3_EXPORT_ID']};aws_secret_access_key=#{ENV['P2RS_S3_EXPORT_KEY']}'
         GZIP TRUNCATECOLUMNS ESCAPE DELIMITER as '|' COMPUPDATE ON
       SQL
-      puts "DROP TABLE IF EXISTS #{PostgresToRedshift.target_schema}.#{table.target_table_name}_temp"
+      #puts "DROP TABLE IF EXISTS #{PostgresToRedshift.target_schema}.#{table.target_table_name}_temp"
       target_connection.exec("DROP TABLE IF EXISTS #{PostgresToRedshift.target_schema}.#{table.target_table_name}_temp")
-      puts "CREATE TABLE #{PostgresToRedshift.target_schema}.#{table.target_table_name}_temp"
+      #puts "CREATE TABLE #{PostgresToRedshift.target_schema}.#{table.target_table_name}_temp"
       target_connection.exec("CREATE TABLE #{PostgresToRedshift.target_schema}.#{table.target_table_name}_temp (#{table.columns_for_create})")
-      puts "COPY TABLE to #{PostgresToRedshift.target_schema}.#{table.target_table_name}_temp"
+      #puts "COPY TABLE to #{PostgresToRedshift.target_schema}.#{table.target_table_name}_temp"
       target_connection.exec(copy_from_command)
-      puts "DELETE FROM #{PostgresToRedshift.target_schema}.#{table.target_table_name} USING #{PostgresToRedshift.target_schema}.#{table.target_table_name}_temp T WHERE #{PostgresToRedshift.target_schema}.#{table.target_table_name}.id = T.id"
+      #puts "DELETE FROM #{PostgresToRedshift.target_schema}.#{table.target_table_name} USING #{PostgresToRedshift.target_schema}.#{table.target_table_name}_temp T WHERE #{PostgresToRedshift.target_schema}.#{table.target_table_name}.id = T.id"
       target_connection.exec("DELETE FROM #{PostgresToRedshift.target_schema}.#{table.target_table_name} USING #{PostgresToRedshift.target_schema}.#{table.target_table_name}_temp T WHERE #{PostgresToRedshift.target_schema}.#{table.target_table_name}.id = T.id")
-      puts "INSERT INTO #{PostgresToRedshift.target_schema}.#{table.target_table_name} SELECT * FROM #{PostgresToRedshift.target_schema}.#{table.target_table_name}_temp"
+      #puts "INSERT INTO #{PostgresToRedshift.target_schema}.#{table.target_table_name} SELECT * FROM #{PostgresToRedshift.target_schema}.#{table.target_table_name}_temp"
       target_connection.exec("INSERT INTO #{PostgresToRedshift.target_schema}.#{table.target_table_name} SELECT * FROM #{PostgresToRedshift.target_schema}.#{table.target_table_name}_temp")
-      puts "DROP TABLE #{PostgresToRedshift.target_schema}.#{table.target_table_name}_temp"
+      #puts "DROP TABLE #{PostgresToRedshift.target_schema}.#{table.target_table_name}_temp"
       target_connection.exec("DROP TABLE #{PostgresToRedshift.target_schema}.#{table.target_table_name}_temp")
       #puts "VACUUM #{PostgresToRedshift.target_schema}.#{table.target_table_name}"
       #target_connection.exec("VACUUM #{PostgresToRedshift.target_schema}.#{table.target_table_name}")

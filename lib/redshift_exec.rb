@@ -13,6 +13,11 @@ class RedshiftExec
     executable_file = s3.buckets[bucket_name].objects[object_name]
     puts ("Executing Script on #{bucket_name}/#{object_name}: #{executable_file}")
     target_connection.exec(executable_file.read)
+
+    if (RedshiftExec.slack_on_success == 'true')
+      message = "[REXE]SUCCESS: Script executed on RedShift | BUCKET: #{RedshiftExec.bucket_name} | SCRIPT: #{RedshiftExec.object_name}"
+      SLACK_NOTIFIER.ping message
+    end
   rescue => e
     SLACK_NOTIFIER.ping "[REXE]#{e.message.gsub("\r"," ").gsub("\n"," ")} | BUCKET: #{RedshiftExec.bucket_name} | SCRIPT: #{RedshiftExec.object_name}"
   end
@@ -42,5 +47,9 @@ class RedshiftExec
 
   def self.object_name
     @object_name ||= ENV['REXE_S3_SCRIPT_NAME']
+  end
+
+  def self.slack_on_success
+    @slack_on_success ||= ENV['SLACK_ON_SUCCESS']
   end
 end
