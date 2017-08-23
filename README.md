@@ -24,7 +24,7 @@ Or install it yourself as:
 
 Set your source and target databases, as well as your s3 intermediary.
 
-*Note: Only set the POSTGRES_TO_REDSHIFT_EXCLUDE_TABLE_PATTERN if you want to exlude certain table*
+*Note: Only set the POSTGRES_TO_REDSHIFT_EXCLUDE_TABLE_PATTERN if you want to exlude certain table(comma seperate for multiple value)*
 
 ```bash
 export POSTGRES_TO_REDSHIFT_SOURCE_URI='postgres://username:password@host:port/database-name'
@@ -33,7 +33,7 @@ export POSTGRES_TO_REDSHIFT_TARGET_SCHEMA='testing-data'
 export S3_DATABASE_EXPORT_ID='yourid'
 export S3_DATABASE_EXPORT_KEY='yourkey'
 export S3_DATABASE_EXPORT_BUCKET='some-bucket-to-use'
-export POSTGRES_TO_REDSHIFT_EXCLUDE_TABLE_PATTERN = ['table-pattern-to-exclude1','table-pattern-to-exclude2']
+export POSTGRES_TO_REDSHIFT_EXCLUDE_TABLE_PATTERN = 'table-pattern-to-exclude1,table-pattern-to-exclude2'
 
 postgres_to_redshift
 ```

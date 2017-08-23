@@ -39,7 +39,7 @@ class PostgresToRedshift
   end
 
   def self.exclude_filters
-    @exclude_filters ||= ENV['POSTGRES_TO_REDSHIFT_EXCLUDE_TABLE_PATTERN']
+    @exclude_filters ||= ENV['POSTGRES_TO_REDSHIFT_EXCLUDE_TABLE_PATTERN'].split(',')
   end
 
   def self.source_uri
