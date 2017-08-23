@@ -22,16 +22,18 @@ class PostgresToRedshift
     update_tables = PostgresToRedshift.new
 
     update_tables.tables.each do |table|
-      target_connection.exec("CREATE TABLE IF NOT EXISTS #{schema}.#{target_connection.quote_ident(table.target_table_name)} (#{table.columns_for_create})")
-      excluding_table = false
+      should_exclude_table = false
+
       if exclude_table
         exclude_filters.each do |filter|
-          excluding_table = true if table.name.include?(filter)
+          should_exclude_table = true if table.name.include?(filter)
           break
         end
       end
 
-      next if excluding_table
+      next if should_exclude_table
+
+      target_connection.exec("CREATE TABLE IF NOT EXISTS #{schema}.#{target_connection.quote_ident(table.target_table_name)} (#{table.columns_for_create})")
 
       update_tables.copy_table(table)
 
