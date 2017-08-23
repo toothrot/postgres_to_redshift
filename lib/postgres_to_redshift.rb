@@ -24,6 +24,7 @@ class PostgresToRedshift
     update_tables.tables.each do |table|
       target_connection.exec("CREATE TABLE IF NOT EXISTS #{schema}.#{target_connection.quote_ident(table.target_table_name)} (#{table.columns_for_create})")
 
+      next if table.name.include?("_20")
       update_tables.copy_table(table)
 
       update_tables.import_table(table)
@@ -90,6 +91,7 @@ class PostgresToRedshift
 
   def copy_table(table)
     tmpfile = Tempfile.new("psql2rs")
+    tmpfile.binmode
     zip = Zlib::GzipWriter.new(tmpfile)
     chunksize = 5 * GIGABYTE # uncompressed
     chunk = 1
@@ -109,6 +111,7 @@ class PostgresToRedshift
             zip.close unless zip.closed?
             tmpfile.unlink
             tmpfile = Tempfile.new("psql2rs")
+            tempfile.binmode
             zip = Zlib::GzipWriter.new(tmpfile)
           end
         end
@@ -131,7 +134,7 @@ class PostgresToRedshift
   def import_table(table)
     puts "Importing #{table.target_table_name}"
     schema = self.class.schema
-    
+
     target_connection.exec("DROP TABLE IF EXISTS #{schema}.#{table.target_table_name}_updating")
 
     target_connection.exec("BEGIN;")
