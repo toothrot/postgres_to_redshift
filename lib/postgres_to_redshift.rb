@@ -23,16 +23,23 @@ class PostgresToRedshift
 
     update_tables.tables.each do |table|
       target_connection.exec("CREATE TABLE IF NOT EXISTS #{schema}.#{target_connection.quote_ident(table.target_table_name)} (#{table.columns_for_create})")
+      excluding_table = false
+      if exclude_table
+        exclude_filters.each do |filter|
+          excluding_table = false if table.name.include?(filter)
+        end
+      end
 
-      next if table.name.include?(exclude_filter) if exclude_table
+      next if excluding_table
+
       update_tables.copy_table(table)
 
       update_tables.import_table(table)
     end
   end
 
-  def self.exclude_filter
-    @exclude_filter ||= ENV['POSTGRES_TO_REDSHIFT_EXCLUDE_TABLE_PATTERN']
+  def self.exclude_filters
+    @exclude_filters ||= ENV['POSTGRES_TO_REDSHIFT_EXCLUDE_TABLE_PATTERN']
   end
 
   def self.source_uri

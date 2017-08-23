@@ -33,7 +33,7 @@ export POSTGRES_TO_REDSHIFT_TARGET_SCHEMA='testing-data'
 export S3_DATABASE_EXPORT_ID='yourid'
 export S3_DATABASE_EXPORT_KEY='yourkey'
 export S3_DATABASE_EXPORT_BUCKET='some-bucket-to-use'
-export POSTGRES_TO_REDSHIFT_EXCLUDE_TABLE_PATTERN = 'table-pattern-to-exclude'
+export POSTGRES_TO_REDSHIFT_EXCLUDE_TABLE_PATTERN = ['table-pattern-to-exclude1','table-pattern-to-exclude2']
 
 postgres_to_redshift
 ```
