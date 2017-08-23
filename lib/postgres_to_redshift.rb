@@ -26,7 +26,8 @@ class PostgresToRedshift
       excluding_table = false
       if exclude_table
         exclude_filters.each do |filter|
-          excluding_table = false if table.name.include?(filter)
+          excluding_table = true if table.name.include?(filter)
+          break
         end
       end
 
