@@ -9,7 +9,7 @@ require "postgres_to_redshift/column"
 
 class PostgresToRedshift
   class << self
-    attr_accessor :source_uri, :target_uri
+    attr_accessor :source_uri, :target_uri, :exclude_filter
   end
 
   attr_reader :source_connection, :target_connection, :s3
@@ -18,17 +18,21 @@ class PostgresToRedshift
   MEGABYTE = KILOBYTE * 1024
   GIGABYTE = MEGABYTE * 1024
 
-  def self.update_tables
+  def self.update_tables(exclude_table)
     update_tables = PostgresToRedshift.new
 
     update_tables.tables.each do |table|
       target_connection.exec("CREATE TABLE IF NOT EXISTS #{schema}.#{target_connection.quote_ident(table.target_table_name)} (#{table.columns_for_create})")
 
-      next if table.name.include?("_20")
+      next if table.name.include?(exclude_filter) if exclude_table
       update_tables.copy_table(table)
 
       update_tables.import_table(table)
     end
+  end
+
+  def self.exclude_filter
+    @exclude_filter ||= ENV['POSTGRES_TO_REDSHIFT_EXCLUDE_TABLE_PATTERN']
   end
 
   def self.source_uri

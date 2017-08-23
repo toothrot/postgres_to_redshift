@@ -2,4 +2,8 @@
 
 require 'postgres_to_redshift'
 
-PostgresToRedshift.update_tables
+if ENV['POSTGRES_TO_REDSHIFT_EXCLUDE_TABLE_PATTERN']
+  PostgresToRedshift.update_tables(true)
+else
+  PostgresToRedshift.update_tables(false)
+
