@@ -33,7 +33,7 @@ class PostgresToRedshift
 
       next if should_exclude_table
 
-      target_connection.exec("CREATE TABLE IF NOT EXISTS #{schema}.#{target_connection.quote_ident(table.target_table_name)} (#{table.columns_for_create})")
+      target_connection.exec("CREATE TABLE IF NOT EXISTS #{target_schema}.#{target_connection.quote_ident(table.target_table_name)} (#{table.columns_for_create})")
 
       update_tables.copy_table(table)
 
@@ -70,8 +70,12 @@ class PostgresToRedshift
     @target_connection
   end
 
-  def self.schema
+  def self.target_schema
     ENV.fetch('POSTGRES_TO_REDSHIFT_TARGET_SCHEMA')
+  end
+
+  def self.source_schema
+    ENV.fetch('POSTGRES_TO_REDSHIFT_SOURCE_SCHEMA')
   end
 
   def source_connection
@@ -147,7 +151,7 @@ class PostgresToRedshift
 
   def import_table(table)
     puts "Importing #{table.target_table_name}"
-    schema = self.class.schema
+    schema = self.class.tatrget_schema
 
     target_connection.exec("DROP TABLE IF EXISTS #{schema}.#{table.target_table_name}_updating")
 
