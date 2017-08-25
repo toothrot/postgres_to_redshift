@@ -75,7 +75,7 @@ class PostgresToRedshift
   end
 
   def self.source_schema
-    ENV.fetch('POSTGRES_TO_REDSHIFT_SOURCE_SCHEMA')
+    ENV['POSTGRES_TO_REDSHIFT_SOURCE_SCHEMA'] || 'public'
   end
 
   def source_connection
