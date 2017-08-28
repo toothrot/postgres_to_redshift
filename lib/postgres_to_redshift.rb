@@ -44,7 +44,7 @@ class PostgresToRedshift
   end
 
   def self.exclude_filters
-    @exclude_filters ||= ENV['POSTGRES_TO_REDSHIFT_EXCLUDE_TABLE_PATTERN'].split(',')
+    ENV['POSTGRES_TO_REDSHIFT_EXCLUDE_TABLE_PATTERN'].split(',')
   end
 
   def self.source_uri
@@ -56,7 +56,7 @@ class PostgresToRedshift
   end
 
   def self.drop_table_before_create
-    @drop_table_before_create ||= ENV['DROP_TABLE_BEFORE_CREATE']
+    ENV['DROP_TABLE_BEFORE_CREATE']
   end
 
   def self.source_connection
@@ -77,11 +77,11 @@ class PostgresToRedshift
   end
 
   def self.target_schema
-    @target_schema ||= ENV.fetch('POSTGRES_TO_REDSHIFT_TARGET_SCHEMA')
+    ENV.fetch('POSTGRES_TO_REDSHIFT_TARGET_SCHEMA')
   end
 
   def self.source_schema
-    @source_schema ||= ENV['POSTGRES_TO_REDSHIFT_SOURCE_SCHEMA'] || 'public'
+    ENV['POSTGRES_TO_REDSHIFT_SOURCE_SCHEMA'] || 'public'
   end
 
   def target_schema
@@ -130,7 +130,7 @@ class PostgresToRedshift
     bucket.objects.with_prefix("export/#{table.target_table_name}.psv.gz").delete_all
     begin
       puts "Downloading #{table}"
-      copy_command = "COPY (SELECT #{table.columns_for_copy} FROM #{table.name}) TO STDOUT WITH DELIMITER '|'"
+      copy_command = "COPY (SELECT #{table.columns_for_copy} FROM #{source_schema}.#{table.name}) TO STDOUT WITH DELIMITER '|'"
 
       source_connection.copy_data(copy_command) do
         while row = source_connection.get_copy_data
