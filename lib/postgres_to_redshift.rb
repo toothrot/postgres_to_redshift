@@ -85,7 +85,7 @@ class PostgresToRedshift
   end
 
   def target_schema
-    self.class.tatrget_schema
+    self.class.target_schema
   end
 
   def source_schema
