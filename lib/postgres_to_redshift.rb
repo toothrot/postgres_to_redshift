@@ -33,6 +33,8 @@ class PostgresToRedshift
 
       next if should_exclude_table
 
+      target_connection.exec("DROP TABLE #{target_schema}.#{table.name}") if drop_table_before_create
+
       target_connection.exec("CREATE TABLE IF NOT EXISTS #{target_schema}.#{target_connection.quote_ident(table.target_table_name)} (#{table.columns_for_create})")
 
       update_tables.copy_table(table)
@@ -51,6 +53,10 @@ class PostgresToRedshift
 
   def self.target_uri
     @target_uri ||= URI.parse(ENV['POSTGRES_TO_REDSHIFT_TARGET_URI'])
+  end
+
+  def self.drop_table_before_create
+    @drop_table_before_create = ENV['DROP_TABLE_BEFORE_CREATE']
   end
 
   def self.source_connection
