@@ -165,7 +165,7 @@ class PostgresToRedshift
 
   def import_table(table)
     puts "Importing #{table.target_table_name}"
-    schema = self.class.tatrget_schema
+    schema = self.class.target_schema
 
     target_connection.exec("DROP TABLE IF EXISTS #{schema}.#{table.target_table_name}_updating")
 
