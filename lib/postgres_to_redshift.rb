@@ -56,7 +56,7 @@ class PostgresToRedshift
   end
 
   def self.drop_table_before_create
-    @drop_table_before_create = ENV['DROP_TABLE_BEFORE_CREATE']
+    @drop_table_before_create ||= ENV['DROP_TABLE_BEFORE_CREATE']
   end
 
   def self.source_connection
@@ -77,11 +77,11 @@ class PostgresToRedshift
   end
 
   def self.target_schema
-    @target_schema = ENV.fetch('POSTGRES_TO_REDSHIFT_TARGET_SCHEMA')
+    @target_schema ||= ENV.fetch('POSTGRES_TO_REDSHIFT_TARGET_SCHEMA')
   end
 
   def self.source_schema
-    @source_schema = ENV['POSTGRES_TO_REDSHIFT_SOURCE_SCHEMA'] || 'public'
+    @source_schema ||= ENV['POSTGRES_TO_REDSHIFT_SOURCE_SCHEMA'] || 'public'
   end
 
   def target_schema
