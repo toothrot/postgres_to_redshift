@@ -77,11 +77,19 @@ class PostgresToRedshift
   end
 
   def self.target_schema
-    ENV.fetch('POSTGRES_TO_REDSHIFT_TARGET_SCHEMA')
+    @target_schema = ENV.fetch('POSTGRES_TO_REDSHIFT_TARGET_SCHEMA')
   end
 
   def self.source_schema
-    ENV['POSTGRES_TO_REDSHIFT_SOURCE_SCHEMA'] || 'public'
+    @source_schema = ENV['POSTGRES_TO_REDSHIFT_SOURCE_SCHEMA'] || 'public'
+  end
+
+  def target_schema
+    self.class.tatrget_schema
+  end
+
+  def source_schema
+    self.class.source_schema
   end
 
   def source_connection
