@@ -22,16 +22,11 @@ class PostgresToRedshift
     update_tables = PostgresToRedshift.new
 
     update_tables.tables.each do |table|
-      should_exclude_table = false
+      next if exclude_filters.any? { |filter| table.name.include?(filter) }
 
-      if exclude_table
-        exclude_filters.each do |filter|
-          should_exclude_table = true if table.name.include?(filter)
-          break
-        end
+      if include_filters.present?
+        next unless include_filters.any?{ |filter| table.name.include?(filter) }
       end
-
-      next if should_exclude_table
 
       target_connection.exec("DROP TABLE #{target_schema}.#{table.name}") if drop_table_before_create
 
@@ -45,6 +40,10 @@ class PostgresToRedshift
 
   def self.exclude_filters
     ENV['POSTGRES_TO_REDSHIFT_EXCLUDE_TABLE_PATTERN'].split(',')
+  end
+
+  def self.include_filters
+    ENV['POSTGRES_TO_REDSHIFT_INCLUDE_TABLE_PATTERN'].split(',')
   end
 
   def self.source_uri
