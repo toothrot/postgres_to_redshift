@@ -41,11 +41,13 @@ class PostgresToRedshift
   end
 
   def self.exclude_filters
-    ENV['POSTGRES_TO_REDSHIFT_EXCLUDE_TABLE_PATTERN'].split(',')
+    filter = ENV['POSTGRES_TO_REDSHIFT_EXCLUDE_TABLE_PATTERN']
+    filter.split(',') if filter.present?
   end
 
   def self.include_filters
-    ENV['POSTGRES_TO_REDSHIFT_INCLUDE_TABLE_PATTERN'].split(',')
+    filter = ENV['POSTGRES_TO_REDSHIFT_INCLUDE_TABLE_PATTERN']
+    filter.split(',') if filter.present?
   end
 
   def self.source_uri
