@@ -22,7 +22,9 @@ class PostgresToRedshift
     update_tables = PostgresToRedshift.new
 
     update_tables.tables.each do |table|
-      next if exclude_filters.any? { |filter| table.name.include?(filter) }
+      if exclude_filters.present?
+        next if exclude_filters.any? { |filter| table.name.include?(filter) }
+      end
 
       if include_filters.present?
         next unless include_filters.any?{ |filter| table.name.include?(filter) }
