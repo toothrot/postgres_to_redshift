@@ -37,7 +37,7 @@ export S3_DATABASE_EXPORT_KEY='yourkey'
 export S3_DATABASE_EXPORT_BUCKET='some-bucket-to-use'
 export DROP_TABLE_BEFORE_CREATE = true
 export POSTGRES_TO_REDSHIFT_EXCLUDE_TABLE_PATTERN = 'table-pattern-to-exclude1,table-pattern-to-exclude2'
-export POSTGRES_TO_REDSHIFT_INCLUDE_TABLE_PATTERN = 'table-pattern-to-exclude1,table-pattern-to-exclude2'
+export POSTGRES_TO_REDSHIFT_INCLUDE_TABLE_PATTERN = 'table-pattern-to-include1,table-pattern-to-include2'
 
 postgres_to_redshift
 ```
