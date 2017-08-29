@@ -23,11 +23,11 @@ class PostgresToRedshift
 
     update_tables.tables.each do |table|
       if exclude_filters.present?
-        next if exclude_filters.any? { |filter| table.name.include?(filter) }
+        next if exclude_filters.any? { |filter| table.name.downcase.include?(filter.downcase) }
       end
 
       if include_filters.present?
-        next unless include_filters.any?{ |filter| table.name.include?(filter) }
+        next unless include_filters.any?{ |filter| table.name.downcase.include?(filter.downcase) }
       end
 
       target_connection.exec("DROP TABLE #{target_schema}.#{table.name}") if drop_table_before_create
