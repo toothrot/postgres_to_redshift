@@ -17,7 +17,7 @@ RSpec.describe 'a small source database', type: :feature do
     end
 
     it 'Copies all rows to target table' do
-      PostgresToRedshift.update_tables(false)
+      PostgresToRedshift.update_tables
       result = PostgresToRedshift::Test.test_target_connection.exec(
           'SELECT * FROM "p2r_integration";'
       )

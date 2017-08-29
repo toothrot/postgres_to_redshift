@@ -18,7 +18,7 @@ class PostgresToRedshift
   MEGABYTE = KILOBYTE * 1024
   GIGABYTE = MEGABYTE * 1024
 
-  def self.update_tables(exclude_table)
+  def self.update_tables
     update_tables = PostgresToRedshift.new
 
     update_tables.tables.each do |table|
