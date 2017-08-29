@@ -9,7 +9,7 @@ require "postgres_to_redshift/column"
 
 class PostgresToRedshift
   class << self
-    attr_accessor :source_uri, :target_uri, :exclude_filter
+    attr_accessor :source_uri, :target_uri
   end
 
   attr_reader :source_connection, :target_connection, :s3
