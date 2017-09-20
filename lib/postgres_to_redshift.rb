@@ -22,6 +22,9 @@ class PostgresToRedshift
     update_tables = PostgresToRedshift.new
 
     update_tables.tables.each do |table|
+      puts "exclude_filters: #{exclude_filters}"
+
+      puts "include_filters: #{include_filters}"
       next if exclude_filters.any? { |filter| table.name.downcase.include?(filter.downcase) }
 
       next unless include_filters.blank? || include_filters.any?{ |filter| table.name.downcase.include?(filter.downcase) }
