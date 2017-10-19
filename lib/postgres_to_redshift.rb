@@ -138,7 +138,7 @@ class PostgresToRedshift
     end
     source_connection.exec(table_command).map do |table_attributes|
     @table = Helper::Table.new(attributes: table_attributes)
-    next if table.name =~ /^pg_/
+      next if table.name =~ /^pg_/
       table.columns = column_definitions(table)
       table
     end.compact

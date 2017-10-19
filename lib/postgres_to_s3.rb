@@ -144,7 +144,7 @@ class PostgresToS3
       tmpfile.rewind
       upload_table(table, tmpfile, chunk, timestamp)
       if (PostgresToS3.slack_on_success == 'true')
-        message = "[P2S3]SUCCESS: Archived #{PostgresToS3.service_name}/#{PostgresToS3.service_name}-#{PostgresToS3.archive_date}-#{table.target_table_name} | Total Chunk(s): #{chunk} | SERVICE: #{PostgresToS3.service_name} | TABLE: #{PostgresToS3.source_table} | DATE: #{PostgresToS3.archive_date}"
+        message = "[P2S3]SUCCESS: Archived #{PostgresToS3.service_name}/#{PostgresToS3.service_name}-#{table.target_table_name}-#{PostgresToS3.archive_date} | Total Chunk(s): #{chunk} | SERVICE: #{PostgresToS3.service_name} | TABLE: #{PostgresToS3.source_table} | DATE: #{PostgresToS3.archive_date}"
         SLACK_NOTIFIER.ping message
       end
       source_connection.reset
@@ -155,12 +155,12 @@ class PostgresToS3
   end
 
   def upload_table(table, buffer, chunk, timestamp)
-    #puts "UPLOADING #{PostgresToS3.service_name}/#{PostgresToS3.service_name}-#{PostgresToS3.archive_date}-#{table.target_table_name}-#{timestamp}.psv.gz.#{chunk}"
+    #puts "UPLOADING #{PostgresToS3.service_name}/#{PostgresToS3.service_name}-#{table.target_table_name}-#{PostgresToS3.archive_date}-#{timestamp}.psv.gz.#{chunk}"
 
-    bucket.objects["#{PostgresToS3.service_name}/#{PostgresToS3.service_name}-#{PostgresToS3.archive_date}-#{table.target_table_name}-#{timestamp}.psv.gz.#{chunk}"].write(buffer, acl: :authenticated_read)
+    bucket.objects["#{PostgresToS3.service_name}/#{PostgresToS3.service_name}-#{table.target_table_name}-#{PostgresToS3.archive_date}-#{timestamp}.psv.gz.#{chunk}"].write(buffer, acl: :authenticated_read)
 
     if (PostgresToS3.slack_on_success == 'true')
-      message = "[P2S3]FINISH: Archived #{PostgresToS3.service_name}/#{PostgresToS3.service_name}-#{PostgresToS3.archive_date}-#{table.target_table_name}-#{timestamp}.psv.gz.#{chunk}"
+      message = "[P2S3]FINISH: Archived #{PostgresToS3.service_name}/#{PostgresToS3.service_name}-#{table.target_table_name}-#{PostgresToS3.archive_date}-#{timestamp}.psv.gz.#{chunk}"
       SLACK_NOTIFIER.ping message
     end
   end
