@@ -129,19 +129,23 @@ class PostgresToRedshift
   end
 
   def import_table(table)
+    retries ||= 0
     puts "Importing #{table.target_table_name}"
     schema = self.class.schema
-    
-    target_connection.exec("DROP TABLE IF EXISTS #{schema}.#{table.target_table_name}_updating")
+    begin
+      target_connection.exec("DROP TABLE IF EXISTS #{schema}.#{table.target_table_name}_updating")
 
-    target_connection.exec("BEGIN;")
+      target_connection.exec("BEGIN;")
 
-    target_connection.exec("ALTER TABLE #{schema}.#{target_connection.quote_ident(table.target_table_name)} RENAME TO #{table.target_table_name}_updating")
+      target_connection.exec("ALTER TABLE #{schema}.#{target_connection.quote_ident(table.target_table_name)} RENAME TO #{table.target_table_name}_updating")
 
-    target_connection.exec("CREATE TABLE #{schema}.#{target_connection.quote_ident(table.target_table_name)} (#{table.columns_for_create})")
+      target_connection.exec("CREATE TABLE #{schema}.#{target_connection.quote_ident(table.target_table_name)} (#{table.columns_for_create})")
 
-    target_connection.exec("COPY #{schema}.#{target_connection.quote_ident(table.target_table_name)} FROM 's3://#{ENV['S3_DATABASE_EXPORT_BUCKET']}/export/#{table.target_table_name}.psv.gz' CREDENTIALS 'aws_access_key_id=#{ENV['S3_DATABASE_EXPORT_ID']};aws_secret_access_key=#{ENV['S3_DATABASE_EXPORT_KEY']}' GZIP TRUNCATECOLUMNS ESCAPE DELIMITER as '|';")
+      target_connection.exec("COPY #{schema}.#{target_connection.quote_ident(table.target_table_name)} FROM 's3://#{ENV['S3_DATABASE_EXPORT_BUCKET']}/export/#{table.target_table_name}.psv.gz' CREDENTIALS 'aws_access_key_id=#{ENV['S3_DATABASE_EXPORT_ID']};aws_secret_access_key=#{ENV['S3_DATABASE_EXPORT_KEY']}' GZIP TRUNCATECOLUMNS ESCAPE DELIMITER as '|';")
 
-    target_connection.exec("COMMIT;")
+      target_connection.exec("COMMIT;")
+    rescue StandardError => e
+      retry if (retries += 1) < 3
+    end
   end
 end
