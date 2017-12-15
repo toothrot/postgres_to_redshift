@@ -22,11 +22,17 @@ class PostgresToRedshift
     update_tables = PostgresToRedshift.new
 
     update_tables.tables.each do |table|
-      target_connection.exec("CREATE TABLE IF NOT EXISTS #{schema}.#{target_connection.quote_ident(table.target_table_name)} (#{table.columns_for_create})")
+      begin
+        retries ||= 3
+        target_connection.exec("CREATE TABLE IF NOT EXISTS #{schema}.#{target_connection.quote_ident(table.target_table_name)} (#{table.columns_for_create})")
 
-      update_tables.copy_table(table)
+        update_tables.copy_table(table)
 
-      update_tables.import_table(table)
+        update_tables.import_table(table)
+      rescue StandardError => e
+        retry unless retries += 1 < 3
+        next
+      end
     end
   end
 
