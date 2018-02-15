@@ -21,10 +21,10 @@ class PostgresToRedshift
   def self.update_tables
     update_tables = PostgresToRedshift.new
 
-    update_tables.tables.each do |table|
-      puts "exclude_filters: #{exclude_filters}"
+    puts "exclude_filters: #{exclude_filters}"
+    puts "include_filters: #{include_filters}"
 
-      puts "include_filters: #{include_filters}"
+    update_tables.tables.each do |table|
       next if exclude_filters.any? { |filter| table.name.downcase.include?(filter.downcase) }
 
       next unless include_filters.blank? || include_filters.any?{ |filter| table.name.downcase.include?(filter.downcase) }
@@ -36,6 +36,8 @@ class PostgresToRedshift
       update_tables.copy_table(table)
 
       update_tables.import_table(table)
+
+      update_tables.clean_up_updating_table(table)
     end
   end
 
@@ -101,7 +103,7 @@ class PostgresToRedshift
   end
 
   def tables
-    source_connection.exec("SELECT * FROM information_schema.tables WHERE table_schema = '#{source_schema}' AND table_type in ('BASE TABLE', 'VIEW')").map do |table_attributes|
+    source_connection.exec("SELECT * FROM information_schema.tables WHERE table_schema = '#{source_schema}' AND table_type in ('BASE TABLE', 'VIEW') order by table_name").map do |table_attributes|
       table = Table.new(attributes: table_attributes)
       next if table.name =~ /^pg_/
       table.columns = column_definitions(table)
@@ -177,8 +179,13 @@ class PostgresToRedshift
 
     target_connection.exec("COPY #{schema}.#{target_connection.quote_ident(table.target_table_name)} FROM 's3://#{ENV['S3_DATABASE_EXPORT_BUCKET']}/export/#{table.target_table_name}.psv.gz' CREDENTIALS 'aws_access_key_id=#{ENV['S3_DATABASE_EXPORT_ID']};aws_secret_access_key=#{ENV['S3_DATABASE_EXPORT_KEY']}' GZIP TRUNCATECOLUMNS ESCAPE DELIMITER as '|';")
 
-    target_connection.exec("DROP TABLE IF EXISTS #{schema}.#{table.target_table_name}_updating")
-
     target_connection.exec("COMMIT;")
+    puts "Imported #{table.target_table_name}"
+  end
+
+  def clean_up_updating_table(table)
+    target_connection.exec("DROP TABLE IF EXISTS #{schema}.#{table.target_table_name}_updating")
+  rescue StandardError => error
+    puts error.message
   end
 end
