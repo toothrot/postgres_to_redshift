@@ -184,6 +184,7 @@ class PostgresToRedshift
   end
 
   def clean_up_updating_table(table)
+    schema = self.class.target_schema
     target_connection.exec("DROP TABLE IF EXISTS #{schema}.#{table.target_table_name}_updating")
   rescue StandardError => error
     puts error.message
