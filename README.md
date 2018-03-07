@@ -20,63 +20,6 @@ Or install it yourself as:
 
     $ gem install postgres_to_redshift
 
-## Usage
-
-Set your source and target databases, as well as your s3 intermediary.
-
-### postgres_to_redshift
-```bash
-export P2RS_INCREMENTAL_BLACKOUT='6' #integer value of the hour in UTC that the incremental job should not be run
-export P2RS_SOURCE_URI='postgres://username:password@host:port/database-name'
-export P2RS_SOURCE_SCHEMA='schema_name'
-export P2RS_SOURCE_TABLE='table_name|ALL' #ALL for all tables in the schema (aside from rails operational tables) eitherwise specify table name
-export P2RS_S3_EXPORT_ID='yourid'
-export P2RS_S3_EXPORT_KEY='yourkey'
-export P2RS_S3_EXPORT_BUCKET='some-bucket-to-use'
-export P2RS_TARGET_URI='postgres://username:password@host:port/database-name'
-export P2RS_TARGET_SCHEMA='schema_name'  #make sure target_schema exist in target DB
-export P2RS_DELETE_OPTION='truncate|drop|incremental' #this define whether the destination tables should be truncated or drop or batch load
-export P2RS_CONDITION_FIELD='na|column_name' #use to decide which time-series field to use for calculating incremental data load
-export P2RS_CONDITION_VALUE='na|some_number' #a number value to determine how many MINUTES we should look for last updated records
-
-postgres_to_redshift
-```
-
-### postgres_to_s3
-```bash
-export P2S3_SOURCE_URI='postgres://username:password@host:port/database-name'
-export P2S3_SOURCE_SCHEMA='schema_name'
-export P2S3_SOURCE_TABLE='table_name'
-export P2S3_S3_EXPORT_ID='yourid'
-export P2S3_S3_EXPORT_KEY='yourkey'
-export P2S3_S3_EXPORT_BUCKET='some-bucket-to-use'
-export P2S3_SERVICE_NAME='service_name in audits table'
-export P2S3_ARCHIVE_FIELD='name of the date column in the table'
-export P2S3_ARCHIVE_DATE='a date column with format YYYY-MM-DD'
-
-postgres_to_s3
-```
-
-### redshift_exec
-```bash
-export P2RS_S3_EXPORT_ID='yourid' -- same as P2RS (assumption being it is being exected on the single RS instance)
-export P2RS_S3_EXPORT_KEY='yourkey' -- same as P2RS (assumption being it is being exected on the single RS instance)
-export P2RS_TARGET_URI='postgres://username:password@host:port/database-name' -- same as P2RS (assumption being it is being exected on the single RS instance)
-
-export REXE_S3_SCRIPT_BUCKET='some-bucket-to-use'
-export REXE_S3_SCRIPT_NAME='object-name-of-the-sql-script'
-
-redshift_exec
-```
-
-### slack integration
-```bash
-export SLACK_CHANNEL
-export SLACK_USERNAME
-export SLACK_WEBHOOK_URL
-export SLACK_ON_SUCCESS='true/[anything]' -- identify whether or not to send slack msg on job success
-```
-
 ## Contributing
 
 1. Fork it ( https://github.com/kitchensurfing/postgres_to_redshift/fork)
