@@ -43,7 +43,6 @@ RSpec.describe 'a small source database with table to be excluded', type: :featu
     after(:all) do
       PostgresToRedshift::Test.test_connection.exec(%q[DROP TABLE IF EXISTS "p2r_integration";])
       PostgresToRedshift::Test.test_target_connection.exec(%q[DROP TABLE IF EXISTS "p2r_integration";])
-
     end
 
     it 'Copies all rows to target table' do
