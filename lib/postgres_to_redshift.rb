@@ -132,7 +132,7 @@ class PostgresToRedshift
     bucket.objects.with_prefix("export/#{table.target_table_name}.psv.gz").delete_all
     begin
       puts "Downloading #{table}"
-      copy_command = "COPY (SELECT #{table.columns_for_copy} FROM #{source_schema}.#{table.name}) TO STDOUT WITH DELIMITER '|' escape '\n'"
+      copy_command = "COPY (SELECT #{table.columns_for_copy} FROM #{source_schema}.#{table.name}) TO STDOUT WITH DELIMITER '|' escape '\'"
 
       source_connection.copy_data(copy_command) do
         while row = source_connection.get_copy_data
