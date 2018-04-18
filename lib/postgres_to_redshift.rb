@@ -132,11 +132,11 @@ class PostgresToRedshift
     bucket.objects.with_prefix("export/#{table.target_table_name}.psv.gz").delete_all
     begin
       puts "Downloading #{table}"
-      copy_command = "COPY (SELECT #{table.columns_for_copy} FROM #{source_schema}.#{table.name}) TO STDOUT WITH DELIMITER '|'"
+      copy_command = "COPY (SELECT #{table.columns_for_copy} FROM #{source_schema}.#{table.name}) TO STDOUT WITH CSV DELIMITER '|'"
 
       source_connection.copy_data(copy_command) do
         while row = source_connection.get_copy_data
-          row = row[0..-2].gsub(/\n/, "\\\\n") + "\n"
+          row = row[0..-2].gsub("\\n", "\\\\\\\\n") + "\n"
           zip.write(row)
           if (zip.pos > chunksize)
             zip.finish
