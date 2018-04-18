@@ -136,7 +136,7 @@ class PostgresToRedshift
 
       source_connection.copy_data(copy_command) do
         while row = source_connection.get_copy_data
-          row = row.dump + "\n"
+          row = row[0..-2].gsub(/\n/, "\\\\n") + "\n"
           zip.write(row)
           if (zip.pos > chunksize)
             zip.finish
