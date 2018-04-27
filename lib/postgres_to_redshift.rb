@@ -145,7 +145,7 @@ class PostgresToRedshift
             zip.close unless zip.closed?
             tmpfile.unlink
             tmpfile = Tempfile.new("psql2rs")
-            tempfile.binmode
+            tmpfile.binmode
             zip = Zlib::GzipWriter.new(tmpfile)
           end
         end
