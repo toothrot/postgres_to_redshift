@@ -112,7 +112,8 @@ class PostgresToRedshift
             chunk += 1
             zip.close unless zip.closed?
             tmpfile.unlink
-            tmpfile = Tempfile.new("psql2rs")
+            tmpfile = Tempfile.new("psql2rs", encoding: 'utf-8')
+            tmpfile.binmode
             zip = Zlib::GzipWriter.new(tmpfile)
           end
         end
