@@ -71,6 +71,9 @@ class PostgresToRedshift
     source_connection.exec("SELECT * FROM information_schema.tables WHERE table_schema = 'public' AND table_type in ('BASE TABLE', 'VIEW')").map do |table_attributes|
       table = Table.new(attributes: table_attributes)
       next if table.name =~ /^pg_/
+      if ENV['REDSHIFT_INCLUDE_TABLES'].present?
+        next if ENV['REDSHIFT_INCLUDE_TABLES'].split(",").include?(table.name)
+      end
       table.columns = column_definitions(table)
       table
     end.compact
@@ -90,6 +93,7 @@ class PostgresToRedshift
 
   def copy_table(table)
     tmpfile = Tempfile.new("psql2rs")
+    tmpfile.binmode
     zip = Zlib::GzipWriter.new(tmpfile)
     chunksize = 5 * GIGABYTE # uncompressed
     chunk = 1
@@ -131,7 +135,7 @@ class PostgresToRedshift
   def import_table(table)
     puts "Importing #{table.target_table_name}"
     schema = self.class.schema
-    
+
     target_connection.exec("DROP TABLE IF EXISTS #{schema}.#{table.target_table_name}_updating")
 
     target_connection.exec("BEGIN;")
