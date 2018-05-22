@@ -92,7 +92,7 @@ class PostgresToRedshift
   end
 
   def copy_table(table)
-    tmpfile = Tempfile.new("psql2rs")
+    tmpfile = Tempfile.new("psql2rs", encoding: 'utf-8')
     tmpfile.binmode
     zip = Zlib::GzipWriter.new(tmpfile)
     chunksize = 5 * GIGABYTE # uncompressed
@@ -103,8 +103,7 @@ class PostgresToRedshift
       copy_command = "COPY (SELECT #{table.columns_for_copy} FROM #{table.name}) TO STDOUT WITH DELIMITER '|'"
 
       source_connection.copy_data(copy_command) do
-        while raw_row = source_connection.get_copy_data
-          row = raw_row.force_encoding("UTF-8") # pg gem returns data as ASCII but db is UTF8, so override
+        while row = source_connection.get_copy_data
           zip.write(row)
           if (zip.pos > chunksize)
             zip.finish
