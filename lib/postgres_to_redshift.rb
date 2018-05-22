@@ -72,7 +72,7 @@ class PostgresToRedshift
       table = Table.new(attributes: table_attributes)
       next if table.name =~ /^pg_/
       if ENV['REDSHIFT_INCLUDE_TABLES'].present?
-        next if ENV['REDSHIFT_INCLUDE_TABLES'].split(",").include?(table.name)
+        next unless ENV['REDSHIFT_INCLUDE_TABLES'].split(",").include?(table.name)
       end
       table.columns = column_definitions(table)
       table
