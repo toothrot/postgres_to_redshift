@@ -74,7 +74,11 @@ class PostgresToRedshift::Column
   end
 
   def data_type
-    attributes["data_type"]
+    if attributes["data_type"] == "numeric"
+      "numeric(#{attributes["numeric_precision"]},#{attributes["numeric_scale"]})"
+    else
+      attributes["data_type"]
+    end
   end
 
   def data_type_for_copy
