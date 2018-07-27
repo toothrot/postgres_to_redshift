@@ -74,10 +74,10 @@ class PostgresToRedshift::Column
   end
 
   def data_type
-    if needs_type_cast?
-      %Q[CAST("#{name}" AS #{data_type_for_copy}) AS #{name}]
+    if attributes["data_type"] == "numeric" && !attributes["numeric_precision"].nil? && !attributes["numeric_scale"].nil?
+      "numeric(#{attributes["numeric_precision"]},#{attributes["numeric_scale"]})"
     else
-      %Q["#{name}"]
+      attributes["data_type"]
     end
   end
 
