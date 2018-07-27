@@ -74,7 +74,11 @@ class PostgresToRedshift::Column
   end
 
   def data_type
-    attributes["data_type"]
+    if needs_type_cast?
+      %Q[CAST("#{name}" AS #{data_type_for_copy}) AS #{name}]
+    else
+      %Q["#{name}"]
+    end
   end
 
   def data_type_for_copy
