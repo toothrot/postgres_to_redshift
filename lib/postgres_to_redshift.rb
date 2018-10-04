@@ -125,13 +125,13 @@ class PostgresToRedshift
 
   def upload_table(table, buffer, chunk)
     puts "Uploading #{table.target_table_name}.#{chunk}"
-    bucket.objects["export/#{table.target_table_name}.psv.gz.#{chunk}"].write(buffer, acl: :authenticated_read)
+    bucket.objects["export/#{table.target_table_name}.psv.gz.#{chunk}"].write(buffer, acl: :private)
   end
 
   def import_table(table)
     puts "Importing #{table.target_table_name}"
     schema = self.class.schema
-    
+
     target_connection.exec("DROP TABLE IF EXISTS #{schema}.#{table.target_table_name}_updating")
 
     target_connection.exec("BEGIN;")
