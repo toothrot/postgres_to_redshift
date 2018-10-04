@@ -19,8 +19,6 @@ class PostgresToRedshift
   GIGABYTE = MEGABYTE * 1024
 
   def self.update_tables
-    $stdout.sync = true
-
     update_tables = PostgresToRedshift.new
 
     update_tables.tables.each do |table|
