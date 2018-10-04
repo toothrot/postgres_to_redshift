@@ -1,9 +1,13 @@
 #!/usr/bin/env ruby
 
+$stdout.sync = true
+
 require 'postgres_to_redshift'
 
+puts "-----------------------------------------"
 puts "Starting postgres_to_redshift pipeline..."
 
 PostgresToRedshift.update_tables
 
-puts "Finished!"
+puts "The postgres_to_redshift pipeline has finished!"
+puts "-----------------------------------------------"
