@@ -2,4 +2,8 @@
 
 require 'postgres_to_redshift'
 
+puts "Starting postgres_to_redshift pipeline..."
+
 PostgresToRedshift.update_tables
+
+puts "Finished!"
