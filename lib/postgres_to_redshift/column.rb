@@ -53,6 +53,8 @@ class PostgresToRedshift::Column
     "bytea" => "CHARACTER VARYING(65535)",
     "money" => "DECIMAL(19,2)",
     "oid" => "CHARACTER VARYING(65535)",
+    "time without time zone" => "CHARACTER VARYING(20)",
+    "bit" => "CHARACTER(1)",
     "ARRAY" => "CHARACTER VARYING(65535)",
     "USER-DEFINED" => "CHARACTER VARYING(65535)",
   }
@@ -77,8 +79,24 @@ class PostgresToRedshift::Column
     attributes["data_type"]
   end
 
+  def numeric_precision
+    attributes["numeric_precision"].to_i
+  end
+
+  def numeric_scale
+    attributes["numeric_scale"].to_i
+  end
+
   def data_type_for_copy
-    CAST_TYPES_FOR_COPY[data_type] || data_type
+    if data_type == 'numeric'
+      if numeric_precision == 0
+        "FLOAT"
+      else
+        "DECIMAL(#{numeric_precision},#{numeric_scale})"
+      end
+    else
+      CAST_TYPES_FOR_COPY[data_type] || data_type
+    end
   end
 
   private
