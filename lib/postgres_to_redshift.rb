@@ -169,9 +169,9 @@ class PostgresToRedshift
     puts "Importing #{table.target_table_name}"
     schema = self.class.target_schema
 
-    target_connection.exec("DROP TABLE IF EXISTS #{schema}.#{table.target_table_name}_updating")
-
     target_connection.exec("BEGIN;")
+
+    target_connection.exec("DROP TABLE IF EXISTS #{schema}.#{table.target_table_name}_updating")
 
     target_connection.exec("ALTER TABLE #{schema}.#{target_connection.quote_ident(table.target_table_name)} RENAME TO #{table.target_table_name}_updating")
 
