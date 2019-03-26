@@ -11,13 +11,12 @@
 # is_typed                     | NO
 # commit_action                |
 #
-class PostgresToRedshift
+module PostgresToRedshift
   class Table
-    attr_accessor :attributes
-    attr_reader :columns
+    attr_reader :columns, :attributes
 
     def initialize(attributes:, columns: [])
-      self.attributes = attributes
+      @attributes = attributes
       self.columns = columns
     end
 

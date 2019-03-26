@@ -44,7 +44,7 @@
 # is_updatable             | YES
 #
 class PostgresToRedshift::Column
-  attr_accessor :attributes
+  attr_reader :attributes
 
   CAST_TYPES_FOR_COPY = {
     'text' => 'CHARACTER VARYING(65535)',
@@ -59,7 +59,7 @@ class PostgresToRedshift::Column
   }.freeze
 
   def initialize(attributes:)
-    self.attributes = attributes
+    @attributes = attributes
   end
 
   def name
