@@ -13,17 +13,18 @@
 #
 class PostgresToRedshift
   class Table
-    attr_accessor :attributes, :columns
+    attr_accessor :attributes
+    attr_reader :columns
 
-    def initialize(attributes: , columns: [])
+    def initialize(attributes:, columns: [])
       self.attributes = attributes
       self.columns = columns
     end
 
     def name
-      attributes["table_name"]
+      attributes['table_name']
     end
-    alias_method :to_s, :name
+    alias to_s name
 
     def target_table_name
       name.gsub(/_view$/, '')
@@ -37,18 +38,16 @@ class PostgresToRedshift
 
     def columns_for_create
       columns.map do |column|
-        %Q["#{column.name}" #{column.data_type_for_copy}]
-      end.join(", ")
+        %("#{column.name}" #{column.data_type_for_copy})
+      end.join(', ')
     end
 
     def columns_for_copy
-      columns.map do |column|
-        column.name_for_copy
-      end.join(", ")
+      columns.map(&:name_for_copy).join(', ')
     end
 
-    def is_view?
-      attributes["table_type"] == "VIEW"
+    def view?
+      attributes['table_type'] == 'VIEW'
     end
   end
 end

@@ -1,22 +1,29 @@
 PATH
   remote: .
   specs:
-    postgres_to_redshift (0.1.2)
+    postgres_to_redshift (0.1.7)
       aws-sdk-v1 (~> 1.54)
-      pg (~> 0.18.1)
+      pg (>= 0.18.1)
 
 GEM
   remote: https://rubygems.org/
   specs:
+    ast (2.4.0)
     aws-sdk-v1 (1.67.0)
       json (~> 1.4)
       nokogiri (~> 1)
     diff-lcs (1.2.5)
+    jaro_winkler (1.5.2)
     json (1.8.6)
-    mini_portile2 (2.3.0)
-    nokogiri (1.8.2)
-      mini_portile2 (~> 2.3.0)
-    pg (0.18.4)
+    mini_portile2 (2.4.0)
+    nokogiri (1.10.2)
+      mini_portile2 (~> 2.4.0)
+    parallel (1.15.0)
+    parser (2.6.2.0)
+      ast (~> 2.4.0)
+    pg (1.1.4)
+    psych (3.1.0)
+    rainbow (3.0.0)
     rake (10.4.2)
     rspec (3.2.0)
       rspec-core (~> 3.2.0)
@@ -31,6 +38,16 @@ GEM
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.2.0)
     rspec-support (3.2.1)
+    rubocop (0.66.0)
+      jaro_winkler (~> 1.5.1)
+      parallel (~> 1.10)
+      parser (>= 2.5, != 2.5.1.1)
+      psych (>= 3.1.0)
+      rainbow (>= 2.2.2, < 4.0)
+      ruby-progressbar (~> 1.7)
+      unicode-display_width (>= 1.4.0, < 1.6)
+    ruby-progressbar (1.10.0)
+    unicode-display_width (1.5.0)
 
 PLATFORMS
   ruby
@@ -40,6 +57,7 @@ DEPENDENCIES
   postgres_to_redshift!
   rake
   rspec
+  rubocop (~> 0.66)
 
 BUNDLED WITH
-   1.16.0
+   1.17.3
