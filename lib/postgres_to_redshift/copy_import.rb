@@ -3,6 +3,7 @@ module PostgresToRedshift
     KILOBYTE = 1024
     MEGABYTE = KILOBYTE * 1024
     GIGABYTE = MEGABYTE * 1024
+    CHUNK_SIZE = 5 * GIGABYTE
 
     def initialize(table:, bucket:, source_connection:, target_connection:, schema:)
       @table = table
@@ -19,11 +20,32 @@ module PostgresToRedshift
 
     private
 
-    def copy_table
+    def new_tmpfile
       tmpfile = Tempfile.new('psql2rs', encoding: 'utf-8')
       tmpfile.binmode
+      tmpfile
+    end
+
+    def start_chunk
+      tmpfile = new_tmpfile
       zip = Zlib::GzipWriter.new(tmpfile)
-      chunksize = 5 * GIGABYTE # uncompressed
+      [tmpfile, zip]
+    end
+
+    def close_resources(tmpfile:, zip:)
+      zip.close unless zip.closed?
+      tmpfile.unlink
+    end
+
+    def finish_chunk(tmpfile:, zip:)
+      zip.finish
+      tmpfile.rewind
+      upload_table(tmpfile, chunk)
+      close_resources(tmpfile: tmpfile, zip: zip)
+    end
+
+    def copy_table
+      tmpfile, zip = start_chunk
       chunk = 1
       bucket.objects.with_prefix("export/#{table.target_table_name}.psv.gz").delete_all
       begin
@@ -33,26 +55,17 @@ module PostgresToRedshift
         source_connection.copy_data(copy_command) do
           while (row = source_connection.get_copy_data)
             zip.write(row)
-            next unless zip.pos > chunksize
+            next unless zip.pos > CHUNK_SIZE
 
-            zip.finish
-            tmpfile.rewind
-            upload_table(table, tmpfile, chunk)
             chunk += 1
-            zip.close unless zip.closed?
-            tmpfile.unlink
-            tmpfile = Tempfile.new('psql2rs', encoding: 'utf-8')
-            tmpfile.binmode
-            zip = Zlib::GzipWriter.new(tmpfile)
+            finish_chunk(tmpfile: tmpfile, zip: zip)
+            tmpfile, zip = start_chunk
           end
         end
-        zip.finish
-        tmpfile.rewind
-        upload_table(table, tmpfile, chunk)
+        finish_chunk(tmpfile: tmpfile, zip: zip)
         source_connection.reset
       ensure
-        zip.close unless zip.closed?
-        tmpfile.unlink
+        close_resources(tmpfile: tmpfile, zip: zip)
       end
     end
 
