@@ -42,13 +42,8 @@ module PostgresToRedshift
   end
 
   def self.tables
-    source_connection.exec("SELECT * FROM information_schema.tables WHERE table_schema = 'public' AND table_type in ('BASE TABLE', 'VIEW')").map do |table_attributes|
+    source_connection.exec(tables_sql).map do |table_attributes|
       table = Table.new(attributes: table_attributes)
-      next if table.name =~ /^pg_/
-
-      if ENV['REDSHIFT_INCLUDE_TABLES'].present?
-        next unless ENV['REDSHIFT_INCLUDE_TABLES'].split(',').include?(table.name)
-      end
       table.columns = column_definitions(table)
       table
     end.compact
@@ -64,5 +59,18 @@ module PostgresToRedshift
 
   def self.bucket
     @bucket ||= s3.buckets[ENV['S3_DATABASE_EXPORT_BUCKET']]
+  end
+
+  def self.redshift_include_tables
+    @redshift_include_tables ||= ENV['REDSHIFT_INCLUDE_TABLES'].split(',')
+  end
+
+  def self.tables_sql
+    sql = "SELECT * FROM information_schema.tables WHERE table_schema = 'public' AND table_type in ('BASE TABLE', 'VIEW') AND table_name !~* '^pg_.*'"
+    if ENV['REDSHIFT_INCLUDE_TABLES'].present?
+      table_names = "'" + redshift_include_tables.join("', '") + "'"
+      sql += " AND table_name IN (#{table_names})"
+    end
+    sql
   end
 end
