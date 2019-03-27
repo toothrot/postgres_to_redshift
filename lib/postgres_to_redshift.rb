@@ -1,19 +1,13 @@
-require "postgres_to_redshift/version"
+require 'postgres_to_redshift/version'
 require 'pg'
 require 'uri'
 require 'aws-sdk-v1'
 require 'zlib'
 require 'tempfile'
-require "postgres_to_redshift/table"
-require "postgres_to_redshift/column"
+require 'postgres_to_redshift/table'
+require 'postgres_to_redshift/column'
 
 class PostgresToRedshift
-  class << self
-    attr_accessor :source_uri, :target_uri
-  end
-
-  attr_reader :source_connection, :target_connection, :s3
-
   KILOBYTE = 1024
   MEGABYTE = KILOBYTE * 1024
   GIGABYTE = MEGABYTE * 1024
@@ -41,18 +35,14 @@ class PostgresToRedshift
   def self.source_connection
     unless instance_variable_defined?(:"@source_connection")
       @source_connection = PG::Connection.new(host: source_uri.host, port: source_uri.port, user: source_uri.user || ENV['USER'], password: source_uri.password, dbname: source_uri.path[1..-1])
-      @source_connection.exec("SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY;")
+      @source_connection.exec('SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY;')
     end
 
     @source_connection
   end
 
   def self.target_connection
-    unless instance_variable_defined?(:"@target_connection")
-      @target_connection = PG::Connection.new(host: target_uri.host, port: target_uri.port, user: target_uri.user || ENV['USER'], password: target_uri.password, dbname: target_uri.path[1..-1])
-    end
-
-    @target_connection
+    @target_connection ||= PG::Connection.new(host: target_uri.host, port: target_uri.port, user: target_uri.user || ENV['USER'], password: target_uri.password, dbname: target_uri.path[1..-1])
   end
 
   def self.schema
@@ -71,8 +61,9 @@ class PostgresToRedshift
     source_connection.exec("SELECT * FROM information_schema.tables WHERE table_schema = 'public' AND table_type in ('BASE TABLE', 'VIEW')").map do |table_attributes|
       table = Table.new(attributes: table_attributes)
       next if table.name =~ /^pg_/
+
       if ENV['REDSHIFT_INCLUDE_TABLES'].present?
-        next unless ENV['REDSHIFT_INCLUDE_TABLES'].split(",").include?(table.name)
+        next unless ENV['REDSHIFT_INCLUDE_TABLES'].split(',').include?(table.name)
       end
       table.columns = column_definitions(table)
       table
@@ -92,7 +83,7 @@ class PostgresToRedshift
   end
 
   def copy_table(table)
-    tmpfile = Tempfile.new("psql2rs", encoding: 'utf-8')
+    tmpfile = Tempfile.new('psql2rs', encoding: 'utf-8')
     tmpfile.binmode
     zip = Zlib::GzipWriter.new(tmpfile)
     chunksize = 5 * GIGABYTE # uncompressed
@@ -103,19 +94,19 @@ class PostgresToRedshift
       copy_command = "COPY (SELECT #{table.columns_for_copy} FROM #{table.name}) TO STDOUT WITH DELIMITER '|'"
 
       source_connection.copy_data(copy_command) do
-        while row = source_connection.get_copy_data
+        while (row = source_connection.get_copy_data)
           zip.write(row)
-          if (zip.pos > chunksize)
-            zip.finish
-            tmpfile.rewind
-            upload_table(table, tmpfile, chunk)
-            chunk += 1
-            zip.close unless zip.closed?
-            tmpfile.unlink
-            tmpfile = Tempfile.new("psql2rs", encoding: 'utf-8')
-            tmpfile.binmode
-            zip = Zlib::GzipWriter.new(tmpfile)
-          end
+          next unless zip.pos > chunksize
+
+          zip.finish
+          tmpfile.rewind
+          upload_table(table, tmpfile, chunk)
+          chunk += 1
+          zip.close unless zip.closed?
+          tmpfile.unlink
+          tmpfile = Tempfile.new('psql2rs', encoding: 'utf-8')
+          tmpfile.binmode
+          zip = Zlib::GzipWriter.new(tmpfile)
         end
       end
       zip.finish
@@ -139,7 +130,7 @@ class PostgresToRedshift
 
     target_connection.exec("DROP TABLE IF EXISTS #{schema}.#{table.target_table_name}_updating")
 
-    target_connection.exec("BEGIN;")
+    target_connection.exec('BEGIN;')
 
     target_connection.exec("ALTER TABLE #{schema}.#{target_connection.quote_ident(table.target_table_name)} RENAME TO #{table.target_table_name}_updating")
 
@@ -147,6 +138,6 @@ class PostgresToRedshift
 
     target_connection.exec("COPY #{schema}.#{target_connection.quote_ident(table.target_table_name)} FROM 's3://#{ENV['S3_DATABASE_EXPORT_BUCKET']}/export/#{table.target_table_name}.psv.gz' CREDENTIALS 'aws_access_key_id=#{ENV['S3_DATABASE_EXPORT_ID']};aws_secret_access_key=#{ENV['S3_DATABASE_EXPORT_KEY']}' GZIP TRUNCATECOLUMNS ESCAPE DELIMITER as '|';")
 
-    target_connection.exec("COMMIT;")
+    target_connection.exec('COMMIT;')
   end
 end

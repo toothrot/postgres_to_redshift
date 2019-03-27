@@ -10,8 +10,7 @@ begin
       t.rspec_opts = '--tag type:feature'
     end
   end
-rescue LoadError
 end
 
 task(:default).clear
-task :default => 'spec:units'
+task default: 'spec:units'
