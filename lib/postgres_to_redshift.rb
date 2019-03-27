@@ -1,19 +1,38 @@
-require 'postgres_to_redshift/version'
 require 'pg'
 require 'uri'
 require 'aws-sdk-v1'
 require 'zlib'
 require 'tempfile'
+require 'time'
 require 'postgres_to_redshift/table'
 require 'postgres_to_redshift/column'
 require 'postgres_to_redshift/copy_import'
+require 'postgres_to_redshift/full_import'
+require 'postgres_to_redshift/incremental_import'
+require 'postgres_to_redshift/version'
 
 module PostgresToRedshift
+  TIMESTAMP_FILE_NAME = 'POSTGRES_TO_REDHSIFT_TIMESTAMP'.freeze
+
   def self.update_tables
-    tables.each do |table|
-      target_connection.exec("CREATE TABLE IF NOT EXISTS #{schema}.#{target_connection.quote_ident(table.target_table_name)} (#{table.columns_for_create})")
-      CopyImport.new(table: table, bucket: bucket, source_connection: source_connection, target_connection: target_connection, schema: schema).run
+    track_incremental do |incremental_from|
+      tables.each do |table|
+        CopyImport.new(table: table, bucket: bucket, source_connection: source_connection, target_connection: target_connection, schema: schema, incremental_from: incremental_from).run
+      end
     end
+  end
+
+  def self.incremental?
+    ENV['POSTGRES_TO_REDSHIFT_INCREMENTAL'] == 'true' && File.exist?(TIMESTAMP_FILE_NAME)
+  end
+
+  def self.track_incremental
+    start_time = Time.now.utc
+    incremental_from = incremental? ? Time.parse(File.read(TIMESTAMP_FILE_NAME)).utc : nil
+
+    yield incremental_from
+
+    File.write(TIMESTAMP_FILE_NAME, start_time.iso8601)
   end
 
   def self.source_uri
@@ -67,10 +86,15 @@ module PostgresToRedshift
 
   def self.tables_sql
     sql = "SELECT * FROM information_schema.tables WHERE table_schema = 'public' AND table_type in ('BASE TABLE', 'VIEW') AND table_name !~* '^pg_.*'"
-    if ENV['REDSHIFT_INCLUDE_TABLES'].present?
+    if ENV['REDSHIFT_INCLUDE_TABLES']
       table_names = "'" + redshift_include_tables.join("', '") + "'"
       sql += " AND table_name IN (#{table_names})"
     end
+    sql += " ORDER BY table_name"
     sql
+  end
+
+  def self.dry_run?
+    ENV['POSTGRES_TO_REDSHIFT_DRY_RUN'] == 'true'
   end
 end

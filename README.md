@@ -35,6 +35,29 @@ export S3_DATABASE_EXPORT_BUCKET='some-bucket-to-use'
 postgres_to_redshift
 ```
 
+### Incremental Imports
+
+It is possible to run an import that will pick up only records that have updated sine the last run of the import. It has the following caveats:
+
+1. Does not apply deletions to the target table
+1. Requires that the source table has either an `updated_at` or `created_at` field
+
+Should you wish to enable incremental mode, set the following ENV:
+
+```bash
+export POSTGRES_TO_REDSHIFT_INCREMENTAL=true
+```
+
+It will record the start time of the last import in a local file and will import changes on or after that start time for subsequent imports.
+
+### Dry Runs
+
+It is possible to run the import in _dry run_ mode whereby the import will run, but will roll back any changes to the target tables.
+
+```bash
+export POSTGRES_TO_REDSHIFT_DRY_RUN=true
+```
+
 ## Contributing
 
 1. Fork it ( https://github.com/kitchensurfing/postgres_to_redshift/fork )

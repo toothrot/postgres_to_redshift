@@ -5,12 +5,13 @@ module PostgresToRedshift
     GIGABYTE = MEGABYTE * 1024
     CHUNK_SIZE = 5 * GIGABYTE
 
-    def initialize(table:, bucket:, source_connection:, target_connection:, schema:)
+    def initialize(table:, bucket:, source_connection:, target_connection:, schema:, incremental_from:)
       @table = table
       @bucket = bucket
       @source_connection = source_connection
       @target_connection = target_connection
       @schema = schema
+      @incremental_from = incremental_from
     end
 
     def run
@@ -19,6 +20,16 @@ module PostgresToRedshift
     end
 
     private
+
+    def select_sql
+      select_sql = "SELECT #{table.columns_for_copy} FROM #{table.name}"
+      select_sql += " WHERE #{incremental_column} >= '#{incremental_from.iso8601}'" if incremental?
+      select_sql
+    end
+
+    def incremental_column
+      @incremental_column ||= %w[updated_at created_at].detect { |column_name| table.column_names.include?(column_name) }
+    end
 
     def new_tmpfile
       tmpfile = Tempfile.new('psql2rs', encoding: 'utf-8')
@@ -37,7 +48,7 @@ module PostgresToRedshift
       tmpfile.unlink
     end
 
-    def finish_chunk(tmpfile:, zip:)
+    def finish_chunk(tmpfile:, zip:, chunk:)
       zip.finish
       tmpfile.rewind
       upload_table(tmpfile, chunk)
@@ -50,7 +61,7 @@ module PostgresToRedshift
       bucket.objects.with_prefix("export/#{table.target_table_name}.psv.gz").delete_all
       begin
         puts "Downloading #{table}"
-        copy_command = "COPY (SELECT #{table.columns_for_copy} FROM #{table.name}) TO STDOUT WITH DELIMITER '|'"
+        copy_command = "COPY (#{select_sql}) TO STDOUT WITH DELIMITER '|'"
 
         source_connection.copy_data(copy_command) do
           while (row = source_connection.get_copy_data)
@@ -58,11 +69,11 @@ module PostgresToRedshift
             next unless zip.pos > CHUNK_SIZE
 
             chunk += 1
-            finish_chunk(tmpfile: tmpfile, zip: zip)
+            finish_chunk(tmpfile: tmpfile, zip: zip, chunk: chunk)
             tmpfile, zip = start_chunk
           end
         end
-        finish_chunk(tmpfile: tmpfile, zip: zip)
+        finish_chunk(tmpfile: tmpfile, zip: zip, chunk: chunk)
         source_connection.reset
       ensure
         close_resources(tmpfile: tmpfile, zip: zip)
@@ -75,21 +86,15 @@ module PostgresToRedshift
     end
 
     def import_table
-      puts "Importing #{table.target_table_name}"
-
-      target_connection.exec("DROP TABLE IF EXISTS #{schema}.#{table.target_table_name}_updating")
-
-      target_connection.exec('BEGIN;')
-
-      target_connection.exec("ALTER TABLE #{schema}.#{target_connection.quote_ident(table.target_table_name)} RENAME TO #{table.target_table_name}_updating")
-
-      target_connection.exec("CREATE TABLE #{schema}.#{target_connection.quote_ident(table.target_table_name)} (#{table.columns_for_create})")
-
-      target_connection.exec("COPY #{schema}.#{target_connection.quote_ident(table.target_table_name)} FROM 's3://#{ENV['S3_DATABASE_EXPORT_BUCKET']}/export/#{table.target_table_name}.psv.gz' CREDENTIALS 'aws_access_key_id=#{ENV['S3_DATABASE_EXPORT_ID']};aws_secret_access_key=#{ENV['S3_DATABASE_EXPORT_KEY']}' GZIP TRUNCATECOLUMNS ESCAPE DELIMITER as '|';")
-
-      target_connection.exec('COMMIT;')
+      args = { table: table, target_connection: target_connection, schema: schema }
+      import = incremental? ? IncrementalImport.new(**args) : FullImport.new(**args)
+      import.run
     end
 
-    attr_reader :table, :bucket, :source_connection, :target_connection, :schema
+    def incremental?
+      incremental_from && incremental_column
+    end
+
+    attr_reader :table, :bucket, :source_connection, :target_connection, :schema, :incremental_from
   end
 end

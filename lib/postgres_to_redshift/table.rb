@@ -1,16 +1,3 @@
-# table_catalog                | postgres_to_redshift
-# table_schema                 | public
-# table_name                   | acquisition_pages
-# table_type                   | BASE TABLE
-# self_referencing_column_name |
-# reference_generation         |
-# user_defined_type_catalog    |
-# user_defined_type_schema     |
-# user_defined_type_name       |
-# is_insertable_into           | YES
-# is_typed                     | NO
-# commit_action                |
-#
 module PostgresToRedshift
   class Table
     attr_reader :columns, :attributes
@@ -43,6 +30,10 @@ module PostgresToRedshift
 
     def columns_for_copy
       columns.map(&:name_for_copy).join(', ')
+    end
+
+    def column_names
+      @column_names ||= columns.map(&:name)
     end
 
     def view?

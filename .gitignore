@@ -16,3 +16,4 @@ mkmf.log
 *swp
 .env
 .idea
+POSTGRES_TO_REDHSIFT_TIMESTAMP
