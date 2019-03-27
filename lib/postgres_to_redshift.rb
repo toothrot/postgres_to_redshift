@@ -1,27 +1,38 @@
-require 'postgres_to_redshift/version'
 require 'pg'
 require 'uri'
 require 'aws-sdk-v1'
 require 'zlib'
 require 'tempfile'
+require 'time'
 require 'postgres_to_redshift/table'
 require 'postgres_to_redshift/column'
+require 'postgres_to_redshift/copy_import'
+require 'postgres_to_redshift/full_import'
+require 'postgres_to_redshift/incremental_import'
+require 'postgres_to_redshift/version'
 
-class PostgresToRedshift
-  KILOBYTE = 1024
-  MEGABYTE = KILOBYTE * 1024
-  GIGABYTE = MEGABYTE * 1024
+module PostgresToRedshift
+  TIMESTAMP_FILE_NAME = 'POSTGRES_TO_REDHSIFT_TIMESTAMP'.freeze
 
   def self.update_tables
-    update_tables = PostgresToRedshift.new
-
-    update_tables.tables.each do |table|
-      target_connection.exec("CREATE TABLE IF NOT EXISTS #{schema}.#{target_connection.quote_ident(table.target_table_name)} (#{table.columns_for_create})")
-
-      update_tables.copy_table(table)
-
-      update_tables.import_table(table)
+    track_incremental do |incremental_from|
+      tables.each do |table|
+        CopyImport.new(table: table, bucket: bucket, source_connection: source_connection, target_connection: target_connection, schema: schema, incremental_from: incremental_from).run
+      end
     end
+  end
+
+  def self.incremental?
+    ENV['POSTGRES_TO_REDSHIFT_INCREMENTAL'] == 'true' && File.exist?(TIMESTAMP_FILE_NAME)
+  end
+
+  def self.track_incremental
+    start_time = Time.now.utc
+    incremental_from = incremental? ? Time.parse(File.read(TIMESTAMP_FILE_NAME)).utc : nil
+
+    yield incremental_from
+
+    File.write(TIMESTAMP_FILE_NAME, start_time.iso8601)
   end
 
   def self.source_uri
@@ -49,95 +60,41 @@ class PostgresToRedshift
     ENV.fetch('POSTGRES_TO_REDSHIFT_TARGET_SCHEMA')
   end
 
-  def source_connection
-    self.class.source_connection
-  end
-
-  def target_connection
-    self.class.target_connection
-  end
-
-  def tables
-    source_connection.exec("SELECT * FROM information_schema.tables WHERE table_schema = 'public' AND table_type in ('BASE TABLE', 'VIEW')").map do |table_attributes|
+  def self.tables
+    source_connection.exec(tables_sql).map do |table_attributes|
       table = Table.new(attributes: table_attributes)
-      next if table.name =~ /^pg_/
-
-      if ENV['REDSHIFT_INCLUDE_TABLES'].present?
-        next unless ENV['REDSHIFT_INCLUDE_TABLES'].split(',').include?(table.name)
-      end
       table.columns = column_definitions(table)
       table
     end.compact
   end
 
-  def column_definitions(table)
+  def self.column_definitions(table)
     source_connection.exec("SELECT * FROM information_schema.columns WHERE table_schema='public' AND table_name='#{table.name}' order by ordinal_position")
   end
 
-  def s3
+  def self.s3
     @s3 ||= AWS::S3.new(access_key_id: ENV['S3_DATABASE_EXPORT_ID'], secret_access_key: ENV['S3_DATABASE_EXPORT_KEY'])
   end
 
-  def bucket
+  def self.bucket
     @bucket ||= s3.buckets[ENV['S3_DATABASE_EXPORT_BUCKET']]
   end
 
-  def copy_table(table)
-    tmpfile = Tempfile.new('psql2rs', encoding: 'utf-8')
-    tmpfile.binmode
-    zip = Zlib::GzipWriter.new(tmpfile)
-    chunksize = 5 * GIGABYTE # uncompressed
-    chunk = 1
-    bucket.objects.with_prefix("export/#{table.target_table_name}.psv.gz").delete_all
-    begin
-      puts "Downloading #{table}"
-      copy_command = "COPY (SELECT #{table.columns_for_copy} FROM #{table.name}) TO STDOUT WITH DELIMITER '|'"
+  def self.redshift_include_tables
+    @redshift_include_tables ||= ENV['REDSHIFT_INCLUDE_TABLES'].split(',')
+  end
 
-      source_connection.copy_data(copy_command) do
-        while (row = source_connection.get_copy_data)
-          zip.write(row)
-          next unless zip.pos > chunksize
-
-          zip.finish
-          tmpfile.rewind
-          upload_table(table, tmpfile, chunk)
-          chunk += 1
-          zip.close unless zip.closed?
-          tmpfile.unlink
-          tmpfile = Tempfile.new('psql2rs', encoding: 'utf-8')
-          tmpfile.binmode
-          zip = Zlib::GzipWriter.new(tmpfile)
-        end
-      end
-      zip.finish
-      tmpfile.rewind
-      upload_table(table, tmpfile, chunk)
-      source_connection.reset
-    ensure
-      zip.close unless zip.closed?
-      tmpfile.unlink
+  def self.tables_sql
+    sql = "SELECT * FROM information_schema.tables WHERE table_schema = 'public' AND table_type in ('BASE TABLE', 'VIEW') AND table_name !~* '^pg_.*'"
+    if ENV['REDSHIFT_INCLUDE_TABLES']
+      table_names = "'" + redshift_include_tables.join("', '") + "'"
+      sql += " AND table_name IN (#{table_names})"
     end
+    sql += " ORDER BY table_name"
+    sql
   end
 
-  def upload_table(table, buffer, chunk)
-    puts "Uploading #{table.target_table_name}.#{chunk}"
-    bucket.objects["export/#{table.target_table_name}.psv.gz.#{chunk}"].write(buffer, acl: :authenticated_read)
-  end
-
-  def import_table(table)
-    puts "Importing #{table.target_table_name}"
-    schema = self.class.schema
-
-    target_connection.exec("DROP TABLE IF EXISTS #{schema}.#{table.target_table_name}_updating")
-
-    target_connection.exec('BEGIN;')
-
-    target_connection.exec("ALTER TABLE #{schema}.#{target_connection.quote_ident(table.target_table_name)} RENAME TO #{table.target_table_name}_updating")
-
-    target_connection.exec("CREATE TABLE #{schema}.#{target_connection.quote_ident(table.target_table_name)} (#{table.columns_for_create})")
-
-    target_connection.exec("COPY #{schema}.#{target_connection.quote_ident(table.target_table_name)} FROM 's3://#{ENV['S3_DATABASE_EXPORT_BUCKET']}/export/#{table.target_table_name}.psv.gz' CREDENTIALS 'aws_access_key_id=#{ENV['S3_DATABASE_EXPORT_ID']};aws_secret_access_key=#{ENV['S3_DATABASE_EXPORT_KEY']}' GZIP TRUNCATECOLUMNS ESCAPE DELIMITER as '|';")
-
-    target_connection.exec('COMMIT;')
+  def self.dry_run?
+    ENV['POSTGRES_TO_REDSHIFT_DRY_RUN'] == 'true'
   end
 end

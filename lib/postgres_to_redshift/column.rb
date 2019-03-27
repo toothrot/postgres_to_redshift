@@ -1,90 +1,47 @@
-# table_catalog            | postgres_to_redshift
-# table_schema             | public
-# table_name               | films
-# column_name              | description
-# ordinal_position         | 2
-# column_default           |
-# is_nullable              | YES
-# data_type                | character varying
-# character_maximum_length | 255
-# character_octet_length   | 1020
-# numeric_precision        |
-# numeric_precision_radix  |
-# numeric_scale            |
-# datetime_precision       |
-# interval_type            |
-# interval_precision       |
-# character_set_catalog    |
-# character_set_schema     |
-# character_set_name       |
-# collation_catalog        |
-# collation_schema         |
-# collation_name           |
-# domain_catalog           |
-# domain_schema            |
-# domain_name              |
-# udt_catalog              | postgres_to_redshift
-# udt_schema               | pg_catalog
-# udt_name                 | varchar
-# scope_catalog            |
-# scope_schema             |
-# scope_name               |
-# maximum_cardinality      |
-# dtd_identifier           | 2
-# is_self_referencing      | NO
-# is_identity              | NO
-# identity_generation      |
-# identity_start           |
-# identity_increment       |
-# identity_maximum         |
-# identity_minimum         |
-# identity_cycle           |
-# is_generated             | NEVER
-# generation_expression    |
-# is_updatable             | YES
-#
-class PostgresToRedshift::Column
-  attr_accessor :attributes
+module PostgresToRedshift
+  class Column
+    CAST_TYPES_FOR_COPY = {
+      'text' => 'CHARACTER VARYING(65535)',
+      'json' => 'CHARACTER VARYING(65535)',
+      'jsonb' => 'CHARACTER VARYING(65535)',
+      'bytea' => 'CHARACTER VARYING(65535)',
+      'money' => 'DECIMAL(19,2)',
+      'oid' => 'CHARACTER VARYING(65535)',
+      'ARRAY' => 'CHARACTER VARYING(65535)',
+      'USER-DEFINED' => 'CHARACTER VARYING(65535)',
+      'uuid' => 'CHARACTER VARYING(36)'
+    }.freeze
 
-  CAST_TYPES_FOR_COPY = {
-    'text' => 'CHARACTER VARYING(65535)',
-    'json' => 'CHARACTER VARYING(65535)',
-    'jsonb' => 'CHARACTER VARYING(65535)',
-    'bytea' => 'CHARACTER VARYING(65535)',
-    'money' => 'DECIMAL(19,2)',
-    'oid' => 'CHARACTER VARYING(65535)',
-    'ARRAY' => 'CHARACTER VARYING(65535)',
-    'USER-DEFINED' => 'CHARACTER VARYING(65535)',
-    'uuid' => 'CHARACTER VARYING(36)'
-  }.freeze
-
-  def initialize(attributes:)
-    self.attributes = attributes
-  end
-
-  def name
-    attributes['column_name']
-  end
-
-  def name_for_copy
-    if needs_type_cast?
-      %[CAST("#{name}" AS #{data_type_for_copy}) AS #{name}]
-    else
-      %("#{name}")
+    def initialize(attributes:)
+      @attributes = attributes
     end
-  end
 
-  def data_type
-    attributes['data_type']
-  end
+    def name
+      attributes['column_name']
+    end
 
-  def data_type_for_copy
-    CAST_TYPES_FOR_COPY[data_type] || data_type
-  end
+    def name_for_copy
+      if needs_type_cast?
+        %[CAST("#{name}" AS #{data_type_for_copy}) AS #{name}]
+      else
+        %("#{name}")
+      end
+    end
 
-  private
+    def data_type
+      attributes['data_type']
+    end
 
-  def needs_type_cast?
-    data_type != data_type_for_copy
+    def data_type_for_copy
+      CAST_TYPES_FOR_COPY[data_type] || data_type
+    end
+
+    private
+
+    attr_reader :attributes
+
+    def needs_type_cast?
+      data_type != data_type_for_copy
+    end
   end
 end
