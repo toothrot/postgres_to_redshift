@@ -30,7 +30,17 @@ module PostgresToRedshift
     start_time = Time.now.utc
     incremental_from = incremental? ? Time.parse(File.read(TIMESTAMP_FILE_NAME)).utc : nil
 
+    target_connection.exec('BEGIN;') if incremental?
+
     yield incremental_from
+
+    if incremental?
+      if PostgresToRedshift.dry_run?
+        target_connection.exec('ROLLBACK;')
+      else
+        target_connection.exec('COMMIT;')
+      end
+    end
 
     File.write(TIMESTAMP_FILE_NAME, start_time.iso8601)
   end
