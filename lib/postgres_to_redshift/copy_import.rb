@@ -4,14 +4,16 @@ module PostgresToRedshift
     MEGABYTE = KILOBYTE * 1024
     GIGABYTE = MEGABYTE * 1024
     CHUNK_SIZE = 5 * GIGABYTE
+    BEGINNING_OF_TIME = Time.at(0).utc
 
-    def initialize(table:, bucket:, source_connection:, target_connection:, schema:, incremental_from: nil)
+    def initialize(table:, bucket:, source_connection:, target_connection:, schema:, incremental_from: BEGINNING_OF_TIME, incremental_to:)
       @table = table
       @bucket = bucket
       @source_connection = source_connection
       @target_connection = target_connection
       @schema = schema
       @incremental_from = incremental_from
+      @incremental_to = incremental_to
     end
 
     def run
@@ -23,7 +25,7 @@ module PostgresToRedshift
 
     def select_sql
       select_sql = "SELECT #{table.columns_for_copy} FROM #{table.name}"
-      select_sql += " WHERE #{incremental_column} >= '#{incremental_from.iso8601}'" if incremental?
+      select_sql += " WHERE #{incremental_column} BETWEEN '#{incremental_from.iso8601}' AND '#{incremental_to.iso8601}'" if incremental_column
       select_sql
     end
 
@@ -60,7 +62,7 @@ module PostgresToRedshift
       chunk = 1
       bucket.objects.with_prefix("export/#{table.target_table_name}.psv.gz").delete_all
       begin
-        puts "Downloading #{table} at #{Time.now.utc}"
+        puts "Downloading #{table} changes between #{incremental_from} and #{incremental_to} at #{Time.now.utc}"
         copy_command = "COPY (#{select_sql}) TO STDOUT WITH DELIMITER '|'"
 
         source_connection.copy_data(copy_command) do
@@ -92,9 +94,9 @@ module PostgresToRedshift
     end
 
     def incremental?
-      incremental_from && incremental_column
+      incremental_from != BEGINNING_OF_TIME
     end
 
-    attr_reader :table, :bucket, :source_connection, :target_connection, :schema, :incremental_from
+    attr_reader :table, :bucket, :source_connection, :target_connection, :schema, :incremental_from, :incremental_to
   end
 end

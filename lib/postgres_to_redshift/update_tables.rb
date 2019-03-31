@@ -9,11 +9,11 @@ module PostgresToRedshift
 
     def incremental
       incremental_from = Time.parse(File.read(PostgresToRedshift::TIMESTAMP_FILE_NAME)).utc
-      with_tracking do
+      with_tracking do |incremental_to|
         with_retry do
           in_transaction do
             tables.each do |table|
-              CopyImport.new(table: table, bucket: bucket, source_connection: source_connection, target_connection: target_connection, schema: schema, incremental_from: incremental_from).run
+              CopyImport.new(table: table, bucket: bucket, source_connection: source_connection, target_connection: target_connection, schema: schema, incremental_from: incremental_from, incremental_to: incremental_to).run
             end
           end
         end
@@ -21,11 +21,11 @@ module PostgresToRedshift
     end
 
     def full
-      with_tracking do
+      with_tracking do |incremental_to|
         tables.each do |table|
           with_retry do
             in_transaction do
-              CopyImport.new(table: table, bucket: bucket, source_connection: source_connection, target_connection: target_connection, schema: schema).run
+              CopyImport.new(table: table, bucket: bucket, source_connection: source_connection, target_connection: target_connection, schema: schema, incremental_to: incremental_to).run
             end
           end
         end
@@ -52,11 +52,11 @@ module PostgresToRedshift
     end
 
     def tables
-      source_connection.exec(tables_sql).map do |table_attributes|
+      @tables ||= source_connection.exec(tables_sql).map do |table_attributes|
         table = Table.new(attributes: table_attributes)
         table.columns = column_definitions(table)
         table
-      end.compact
+      end
     end
 
     def redshift_include_tables
@@ -92,17 +92,20 @@ module PostgresToRedshift
 
     def with_tracking
       start_time = Time.now.utc
-      yield
+      puts "Import started at #{start_time}"
+      yield start_time
       File.write(PostgresToRedshift::TIMESTAMP_FILE_NAME, start_time.iso8601)
     end
 
     def in_transaction
       target_connection.exec('BEGIN;')
       yield
-      if dry_run?
+      if PostgresToRedshift.dry_run?
         target_connection.exec('ROLLBACK;')
+        puts 'Rolled back'
       else
         target_connection.exec('COMMIT;')
+        puts 'Committed'
       end
     end
 
