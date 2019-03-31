@@ -60,7 +60,7 @@ module PostgresToRedshift
       chunk = 1
       bucket.objects.with_prefix("export/#{table.target_table_name}.psv.gz").delete_all
       begin
-        puts "Downloading #{table}"
+        puts "Downloading #{table} at #{Time.now.utc}"
         copy_command = "COPY (#{select_sql}) TO STDOUT WITH DELIMITER '|'"
 
         source_connection.copy_data(copy_command) do
