@@ -5,7 +5,7 @@ module PostgresToRedshift
     GIGABYTE = MEGABYTE * 1024
     CHUNK_SIZE = 5 * GIGABYTE
 
-    def initialize(table:, bucket:, source_connection:, target_connection:, schema:, incremental_from:)
+    def initialize(table:, bucket:, source_connection:, target_connection:, schema:, incremental_from: nil)
       @table = table
       @bucket = bucket
       @source_connection = source_connection
