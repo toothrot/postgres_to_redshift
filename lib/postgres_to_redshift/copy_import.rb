@@ -3,7 +3,7 @@ module PostgresToRedshift
     KILOBYTE = 1024
     MEGABYTE = KILOBYTE * 1024
     GIGABYTE = MEGABYTE * 1024
-    CHUNK_SIZE = 2 * GIGABYTE
+    CHUNK_SIZE = 3 * GIGABYTE
     BEGINNING_OF_TIME = Time.at(0).utc
 
     def initialize(table:, bucket:, source_connection:, target_connection:, schema:, incremental_from: BEGINNING_OF_TIME, incremental_to:)

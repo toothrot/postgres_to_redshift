@@ -73,17 +73,25 @@ module PostgresToRedshift
       sql
     end
 
+    def disconnect
+      target_connection.exec('ROLLBACK;') rescue nil
+      %i[@source_connection @target_connection].each do |connection_variable|
+        next unless instance_variable_defined?(connection_variable)
+
+        connection = remove_instance_variable(connection_variable)
+        connection.finish rescue nil
+      end
+    end
+
     def with_retry
       retries_remaining = 2
       begin
         yield
       rescue StandardError => e
         puts "Import failed with #{retries_remaining} retries remaining due to: #{e.message}"
-        target_connection.exec('ROLLBACK;') rescue nil
+        disconnect
         raise unless retries_remaining.positive?
 
-        remove_instance_variable(:"@source_connection") if instance_variable_defined?(:"@source_connection")
-        remove_instance_variable(:"@target_connection") if instance_variable_defined?(:"@target_connection")
         sleep 30
         retries_remaining -= 1
         retry
