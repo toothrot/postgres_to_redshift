@@ -24,3 +24,6 @@ Naming/HeredocDelimiterNaming:
 
 Style/ClassAndModuleChildren:
   Enabled: false
+
+Style/RescueModifier:
+  Enabled: false

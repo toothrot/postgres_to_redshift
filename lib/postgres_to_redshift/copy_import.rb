@@ -3,15 +3,17 @@ module PostgresToRedshift
     KILOBYTE = 1024
     MEGABYTE = KILOBYTE * 1024
     GIGABYTE = MEGABYTE * 1024
-    CHUNK_SIZE = 5 * GIGABYTE
+    CHUNK_SIZE = 3 * GIGABYTE
+    BEGINNING_OF_TIME = Time.at(0).utc
 
-    def initialize(table:, bucket:, source_connection:, target_connection:, schema:, incremental_from:)
+    def initialize(table:, bucket:, source_connection:, target_connection:, schema:, incremental_from: BEGINNING_OF_TIME, incremental_to:)
       @table = table
       @bucket = bucket
       @source_connection = source_connection
       @target_connection = target_connection
       @schema = schema
       @incremental_from = incremental_from
+      @incremental_to = incremental_to
     end
 
     def run
@@ -23,7 +25,7 @@ module PostgresToRedshift
 
     def select_sql
       select_sql = "SELECT #{table.columns_for_copy} FROM #{table.name}"
-      select_sql += " WHERE #{incremental_column} >= '#{incremental_from.iso8601}'" if incremental?
+      select_sql += " WHERE #{incremental_column} BETWEEN '#{incremental_from.iso8601}' AND '#{incremental_to.iso8601}'" if incremental_column
       select_sql
     end
 
@@ -32,7 +34,8 @@ module PostgresToRedshift
     end
 
     def new_tmpfile
-      tmpfile = Tempfile.new('psql2rs', encoding: 'utf-8')
+      tmpfile = StringIO.new
+      tmpfile.set_encoding('utf-8')
       tmpfile.binmode
       tmpfile
     end
@@ -43,16 +46,15 @@ module PostgresToRedshift
       [tmpfile, zip]
     end
 
-    def close_resources(tmpfile:, zip:)
+    def close_resources(zip:)
       zip.close unless zip.closed?
-      tmpfile.unlink
     end
 
     def finish_chunk(tmpfile:, zip:, chunk:)
       zip.finish
       tmpfile.rewind
       upload_table(tmpfile, chunk)
-      close_resources(tmpfile: tmpfile, zip: zip)
+      close_resources(zip: zip)
     end
 
     def copy_table
@@ -60,7 +62,7 @@ module PostgresToRedshift
       chunk = 1
       bucket.objects.with_prefix("export/#{table.target_table_name}.psv.gz").delete_all
       begin
-        puts "Downloading #{table}"
+        puts "Downloading #{table} changes between #{incremental_from} and #{incremental_to} at #{Time.now.utc}"
         copy_command = "COPY (#{select_sql}) TO STDOUT WITH DELIMITER '|'"
 
         source_connection.copy_data(copy_command) do
@@ -68,15 +70,15 @@ module PostgresToRedshift
             zip.write(row)
             next unless zip.pos > CHUNK_SIZE
 
-            chunk += 1
             finish_chunk(tmpfile: tmpfile, zip: zip, chunk: chunk)
+            chunk += 1
             tmpfile, zip = start_chunk
           end
         end
         finish_chunk(tmpfile: tmpfile, zip: zip, chunk: chunk)
         source_connection.reset
       ensure
-        close_resources(tmpfile: tmpfile, zip: zip)
+        close_resources(zip: zip)
       end
     end
 
@@ -92,9 +94,9 @@ module PostgresToRedshift
     end
 
     def incremental?
-      incremental_from && incremental_column
+      incremental_from != BEGINNING_OF_TIME
     end
 
-    attr_reader :table, :bucket, :source_connection, :target_connection, :schema, :incremental_from
+    attr_reader :table, :bucket, :source_connection, :target_connection, :schema, :incremental_from, :incremental_to
   end
 end

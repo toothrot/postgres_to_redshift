@@ -7,9 +7,7 @@ module PostgresToRedshift
     end
 
     def run
-      puts "Importing #{table.target_table_name}"
-
-      target_connection.exec('BEGIN;')
+      puts "Importing #{table.target_table_name} at #{Time.now.utc}"
 
       target_connection.exec("CREATE TABLE IF NOT EXISTS #{table_name} (#{table.columns_for_create});")
 
@@ -20,12 +18,6 @@ module PostgresToRedshift
       target_connection.exec("DELETE FROM #{table_name} USING #{temp_table_name} source WHERE #{table_name}.id = source.id;")
 
       target_connection.exec("INSERT INTO #{table_name} SELECT * FROM #{temp_table_name};")
-
-      if PostgresToRedshift.dry_run?
-        target_connection.exec('ROLLBACK;')
-      else
-        target_connection.exec('COMMIT;')
-      end
     end
 
     private

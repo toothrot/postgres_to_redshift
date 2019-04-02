@@ -58,6 +58,19 @@ It is possible to run the import in _dry run_ mode whereby the import will run, 
 export POSTGRES_TO_REDSHIFT_DRY_RUN=true
 ```
 
+### Error handling
+
+If an error is encountered during an import it will be handled as follows:
+
+* Incremental imports: The import will be rolled back and retried from the beginning
+* Full imports: The import will be rolled back to the previous table and the current table's import will be retried
+
+An import will be attempted three times before giving up and raising the exception to the caller.
+
+#### Transactions
+
+For an _incremental_ import, the entire import process is performed in one database transaction to ensure that the data remains in a consistent state while the import is running as it is assumed that the incremental import will be running during business hours moving a relatively small amount of data. For a _full_ import, each table is imported in its own transaction as it is assumed that the full import is running outside of business hours and would be moving too large a volume of data to be performed in a single transaction.
+
 ## Contributing
 
 1. Fork it ( https://github.com/kitchensurfing/postgres_to_redshift/fork )
