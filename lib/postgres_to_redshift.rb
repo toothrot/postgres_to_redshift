@@ -1,9 +1,10 @@
-require 'pg'
-require 'uri'
 require 'aws-sdk-v1'
-require 'zlib'
+require 'pg'
+require 'pidfile'
 require 'tempfile'
 require 'time'
+require 'uri'
+require 'zlib'
 require 'postgres_to_redshift/table'
 require 'postgres_to_redshift/column'
 require 'postgres_to_redshift/copy_import'
@@ -18,6 +19,8 @@ module PostgresToRedshift
   extend self
 
   def update_tables
+    PidFile.new
+
     update_tables = UpdateTables.new(bucket: bucket, source_uri: source_uri, target_uri: target_uri, schema: schema)
     incremental? ? update_tables.incremental : update_tables.full
   end

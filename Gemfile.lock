@@ -1,9 +1,10 @@
 PATH
   remote: .
   specs:
-    postgres_to_redshift (0.3.0)
+    postgres_to_redshift (0.4.0)
       aws-sdk-v1 (~> 1.54)
       pg (>= 0.18.1)
+      pidfile
 
 GEM
   remote: https://rubygems.org/
@@ -22,6 +23,7 @@ GEM
     parser (2.6.2.0)
       ast (~> 2.4.0)
     pg (1.1.4)
+    pidfile (0.3.0)
     psych (3.1.0)
     rainbow (3.0.0)
     rake (10.4.2)
