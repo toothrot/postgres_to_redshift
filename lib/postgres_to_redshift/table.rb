@@ -1,9 +1,8 @@
 module PostgresToRedshift
   class Table
-    attr_reader :columns, :attributes
-
     def initialize(attributes:, columns: [])
       @attributes = attributes
+      @dirty = false
       self.columns = columns
     end
 
@@ -39,5 +38,21 @@ module PostgresToRedshift
     def view?
       attributes['table_type'] == 'VIEW'
     end
+
+    def ==(other)
+      name == other.name && column_names == other.column_names
+    end
+
+    def dirty!
+      @dirty = true
+    end
+
+    def dirty?
+      dirty
+    end
+
+    private
+
+    attr_reader :columns, :attributes, :dirty
   end
 end

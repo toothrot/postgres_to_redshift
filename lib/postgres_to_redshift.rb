@@ -9,6 +9,7 @@ require 'postgres_to_redshift/column'
 require 'postgres_to_redshift/copy_import'
 require 'postgres_to_redshift/full_import'
 require 'postgres_to_redshift/incremental_import'
+require 'postgres_to_redshift/tables'
 require 'postgres_to_redshift/update_tables'
 require 'postgres_to_redshift/version'
 
