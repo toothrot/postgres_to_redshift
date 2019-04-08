@@ -8,11 +8,12 @@ module PostgresToRedshift
     end
 
     def incremental
-      incremental_from = Time.parse(File.read(PostgresToRedshift::TIMESTAMP_FILE_NAME)).utc
+      start_time_of_previous_job = Time.parse(File.read(PostgresToRedshift::TIMESTAMP_FILE_NAME)).utc
       with_tracking do |incremental_to|
         with_retry do
           in_transaction do
             tables.each do |table|
+              incremental_from = table.dirty? ? CopyImport::BEGINNING_OF_TIME : start_time_of_previous_job
               CopyImport.new(table: table, bucket: bucket, source_connection: source_connection, target_connection: target_connection, schema: schema, incremental_from: incremental_from, incremental_to: incremental_to).run
             end
           end
@@ -47,30 +48,9 @@ module PostgresToRedshift
       @target_connection ||= PG::Connection.new(host: target_uri.host, port: target_uri.port, user: target_uri.user || ENV['USER'], password: target_uri.password, dbname: target_uri.path[1..-1])
     end
 
-    def column_definitions(table)
-      source_connection.exec("SELECT * FROM information_schema.columns WHERE table_schema='public' AND table_name='#{table.name}' order by ordinal_position")
-    end
-
     def tables
-      @tables ||= source_connection.exec(tables_sql).map do |table_attributes|
-        table = Table.new(attributes: table_attributes)
-        table.columns = column_definitions(table)
-        table
-      end
-    end
-
-    def redshift_include_tables
-      @redshift_include_tables ||= ENV['REDSHIFT_INCLUDE_TABLES'].split(',')
-    end
-
-    def tables_sql
-      sql = "SELECT * FROM information_schema.tables WHERE table_schema = 'public' AND table_type in ('BASE TABLE', 'VIEW') AND table_name !~* '^pg_.*'"
-      if ENV['REDSHIFT_INCLUDE_TABLES']
-        table_names = "'" + redshift_include_tables.join("', '") + "'"
-        sql += " AND table_name IN (#{table_names})"
-      end
-      sql += ' ORDER BY table_name'
-      sql
+      # do not cache - we want fresh table listing for retries
+      Tables.new(source_connection: source_connection, target_connection: target_connection).all
     end
 
     def disconnect
