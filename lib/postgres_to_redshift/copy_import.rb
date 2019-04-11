@@ -84,7 +84,7 @@ module PostgresToRedshift
 
     def upload_table(buffer, chunk)
       puts "Uploading #{table.target_table_name}.#{chunk}"
-      bucket.objects["export/#{table.target_table_name}.psv.gz.#{chunk}"].write(buffer, acl: :authenticated_read)
+      bucket.objects["export/#{table.target_table_name}.psv.gz.#{chunk}"].write(buffer)
     end
 
     def import_table
