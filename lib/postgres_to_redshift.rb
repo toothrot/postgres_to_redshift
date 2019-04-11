@@ -96,6 +96,8 @@ class PostgresToRedshift
     bucket.objects.with_prefix("export/#{table.target_table_name}.psv.gz").delete_all
     begin
       puts "Downloading #{table}"
+      $stdout.flush   # flush output for immediate logging
+
       copy_command = "COPY (SELECT #{table.columns_for_copy} FROM #{table.name}) TO STDOUT WITH DELIMITER '|'"
 
       source_connection.copy_data(copy_command) do
@@ -125,11 +127,15 @@ class PostgresToRedshift
 
   def upload_table(table, buffer, chunk)
     puts "Uploading #{table.target_table_name}.#{chunk}"
+    $stdout.flush   # flush output for immediate logging
+
     bucket.objects["export/#{table.target_table_name}.psv.gz.#{chunk}"].write(buffer, acl: :private)
   end
 
   def import_table(table)
     puts "Importing #{table.target_table_name}"
+    $stdout.flush   # flush output for immediate logging
+
     schema = self.class.schema
 
     target_connection.exec("DROP TABLE IF EXISTS #{schema}.#{table.target_table_name}_updating")
@@ -142,7 +148,7 @@ class PostgresToRedshift
 
     target_connection.exec("COPY #{schema}.#{target_connection.quote_ident(table.target_table_name)} FROM 's3://#{ENV['S3_DATABASE_EXPORT_BUCKET']}/export/#{table.target_table_name}.psv.gz' CREDENTIALS 'aws_access_key_id=#{ENV['S3_DATABASE_EXPORT_ID']};aws_secret_access_key=#{ENV['S3_DATABASE_EXPORT_KEY']}' GZIP TRUNCATECOLUMNS ESCAPE DELIMITER as '|';")
 
-    target_connection.exec("DROP TABLE #{schema}.#{table.target_table_name}_updating CASCADE")
+    target_connection.exec("DROP TABLE IF EXISTS #{schema}.#{table.target_table_name}_updating")
 
     target_connection.exec("COMMIT;")
   end
