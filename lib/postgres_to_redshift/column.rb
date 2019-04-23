@@ -79,6 +79,8 @@ class PostgresToRedshift::Column
   def data_type
     if attributes["data_type"] == "numeric" && !attributes["numeric_precision"].nil? && !attributes["numeric_scale"].nil?
       "numeric(#{attributes["numeric_precision"]},#{attributes["numeric_scale"]})"
+    elsif attributes["data_type"] == "character varying" && !attributes["character_maximum_length"].nil? && !attributes["character_octet_length"].nil?
+      "CHARACTER VARYING(#{attributes["character_maximum_length"]})"
     else
       attributes["data_type"]
     end
