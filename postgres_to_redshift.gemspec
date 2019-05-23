@@ -22,4 +22,5 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "rake", "~> 10.0"
   spec.add_dependency "pg", "~> 0.18.0"
   spec.add_dependency "aws-sdk-v1", "~> 1.54"
+  spec.add_dependency "redshift-client", "~> 0.3.0"
 end

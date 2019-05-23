@@ -51,11 +51,19 @@ class PostgresToRedshift
   end
 
   def self.source_uri
-    @source_uri ||= URI.parse(ENV['POSTGRES_TO_REDSHIFT_SOURCE_URI'])
+    if ENV['POSTGRES_TO_REDSHIFT_SOURCE_URI'].include?("redshift")
+      @source_uri ||= ENV['POSTGRES_TO_REDSHIFT_SOURCE_URI']
+    else
+      @source_uri ||= URI.parse(ENV['POSTGRES_TO_REDSHIFT_SOURCE_URI'])
+    end
   end
 
   def self.target_uri
-    @target_uri ||= URI.parse(ENV['POSTGRES_TO_REDSHIFT_TARGET_URI'])
+    if ENV['POSTGRES_TO_REDSHIFT_TARGET_URI'].include?("redshift")
+      @target_uri ||= ENV['POSTGRES_TO_REDSHIFT_TARGET_URI']
+    else
+      @target_uri ||= URI.parse(ENV['POSTGRES_TO_REDSHIFT_TARGET_URI'])
+    end
   end
 
   def self.drop_table_before_create
@@ -64,8 +72,14 @@ class PostgresToRedshift
 
   def self.source_connection
     unless instance_variable_defined?(:"@source_connection")
-      @source_connection = PG::Connection.new(host: source_uri.host, port: source_uri.port, user: source_uri.user || ENV['USER'], password: source_uri.password, dbname: source_uri.path[1..-1])
-      @source_connection.exec("SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY;")
+      if ENV['POSTGRES_TO_REDSHIFT_SOURCE_URI'].include?("redshift")
+        Redshift::Client.establish_connection
+        @source_connection = Redshift::Client.connection
+        @source_connection.exec("SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY;")
+      else
+        @source_connection = PG::Connection.new(host: source_uri.host, port: source_uri.port, user: source_uri.user || ENV['USER'], password: source_uri.password, dbname: source_uri.path[1..-1])
+        @source_connection.exec("SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY;")
+      end
     end
 
     @source_connection
