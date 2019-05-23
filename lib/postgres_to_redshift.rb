@@ -69,6 +69,7 @@ class PostgresToRedshift
   def self.source_connection
     unless instance_variable_defined?(:"@source_connection")
       if ENV['POSTGRES_TO_REDSHIFT_SOURCE_URI'].include?("redshift")
+        ENV['REDSHIFT_URL'] == ENV['POSTGRES_TO_REDSHIFT_SOURCE_URI']
         Redshift::Client.establish_connection
         @source_connection = Redshift::Client.connection
         @source_connection.exec("SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY;")
