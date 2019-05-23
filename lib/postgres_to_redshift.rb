@@ -59,11 +59,7 @@ class PostgresToRedshift
   end
 
   def self.target_uri
-    if ENV['POSTGRES_TO_REDSHIFT_TARGET_URI'].include?("redshift")
-      @target_uri ||= ENV['POSTGRES_TO_REDSHIFT_TARGET_URI']
-    else
-      @target_uri ||= URI.parse(ENV['POSTGRES_TO_REDSHIFT_TARGET_URI'])
-    end
+    @target_uri ||= URI.parse(ENV['POSTGRES_TO_REDSHIFT_TARGET_URI'])
   end
 
   def self.drop_table_before_create
