@@ -23,6 +23,7 @@ class PostgresToRedshift
 
     puts "exclude_filters: #{exclude_filters}"
     puts "include_filters: #{include_filters}"
+    target_connection.exec("CREATE SCHEMA IF NOT EXISTS #{target_schema}")
 
     update_tables.tables.each do |table|
       next if exclude_filters.any? { |filter| table.name.downcase.include?(filter.downcase) }
