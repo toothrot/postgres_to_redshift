@@ -57,7 +57,8 @@ class PostgresToRedshift::Column
     "USER-DEFINED" => "CHARACTER VARYING(65535)",
     "inet" => "CHARACTER VARYING(65535)",
     "numeric" => "DOUBLE PRECISION",
-    "character varying" => "CHARACTER VARYING(2000)"
+    "character varying" => "CHARACTER VARYING(2000)",
+    "uuid" => "CHARACTER VARYING(32)"
   }
 
   def initialize(attributes: )
