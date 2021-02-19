@@ -1,7 +1,7 @@
 require "postgres_to_redshift/version"
 require 'pg'
 require 'uri'
-require 'aws-sdk-v1'
+require 'aws-sdk'
 require 'zlib'
 require 'tempfile'
 require "postgres_to_redshift/table"
@@ -131,7 +131,7 @@ class PostgresToRedshift
   def import_table(table)
     puts "Importing #{table.target_table_name}"
     schema = self.class.schema
-    
+
     target_connection.exec("DROP TABLE IF EXISTS #{schema}.#{table.target_table_name}_updating")
 
     target_connection.exec("BEGIN;")
