@@ -38,10 +38,14 @@ class PostgresToRedshift
     @target_uri ||= URI.parse(ENV['POSTGRES_TO_REDSHIFT_TARGET_URI'])
   end
 
+
   def self.source_connection
     unless instance_variable_defined?(:"@source_connection")
       @source_connection = PG::Connection.new(host: source_uri.host, port: source_uri.port, user: source_uri.user || ENV['USER'], password: source_uri.password, dbname: source_uri.path[1..-1])
       @source_connection.exec("SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY;")
+      
+      // if set: have a statement timeout: 
+      // set statement_timeout to 24000000;
     end
 
     @source_connection
