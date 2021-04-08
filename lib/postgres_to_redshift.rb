@@ -44,8 +44,10 @@ class PostgresToRedshift
       @source_connection = PG::Connection.new(host: source_uri.host, port: source_uri.port, user: source_uri.user || ENV['USER'], password: source_uri.password, dbname: source_uri.path[1..-1])
       @source_connection.exec("SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY;")
       
-      // if set: have a statement timeout: 
-      // set statement_timeout to 24000000;
+      # if set: have a statement timeout: 
+      unless ENV['POSTGRES_TO_REDSHIFT_STATEMENT_TIMEOUT'].empty?
+        @source_connection.exec("set statement_timeout to #{ENV['POSTGRES_TO_REDSHIFT_STATEMENT_TIMEOUT']};")
+      end
     end
 
     @source_connection
@@ -85,11 +87,23 @@ class PostgresToRedshift
   end
 
   def s3
-    @s3 ||= Aws::S3.new(access_key_id: ENV['S3_DATABASE_EXPORT_ID'], secret_access_key: ENV['S3_DATABASE_EXPORT_KEY'])
+    unless ENV['S3_DATABASE_AUTH_ROLE'].empty
+      @s3 ||= Aws::S3.new(access_key_id: ENV['S3_DATABASE_EXPORT_ID'], secret_access_key: ENV['S3_DATABASE_EXPORT_KEY'])
+    else
+      @s3 ||= Aws::S3.new()
+    end
   end
 
   def bucket
     @bucket ||= s3.buckets[ENV['S3_DATABASE_EXPORT_BUCKET']]
+  end
+
+  def s3_auth_method
+    unless ENV['S3_DATABASE_AUTH_ROLE'].empty?
+      @authMethod ||= "'aws_iam_role=#{ENV['S3_DATABASE_AUTH_ROLE']}'"
+    else 
+      @authMethod ||= "'aws_access_key_id=#{ENV['S3_DATABASE_EXPORT_ID']};aws_secret_access_key=#{ENV['S3_DATABASE_EXPORT_KEY']}'"
+    end
   end
 
   def copy_table(table)
@@ -100,6 +114,8 @@ class PostgresToRedshift
     bucket.objects.with_prefix("export/#{table.target_table_name}.psv.gz").delete_all
     begin
       puts "Downloading #{table}"
+      ## TODO 1 :: Filter column names ...
+      ## TODO 2 :: setup dist key's
       copy_command = "COPY (SELECT #{table.columns_for_copy} FROM #{table.name}) TO STDOUT WITH DELIMITER '|'"
 
       source_connection.copy_data(copy_command) do
